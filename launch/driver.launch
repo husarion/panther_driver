@@ -1,0 +1,13 @@
+<launch>
+
+    <include file="$(find webui-ros-joystick)/launch/webui.launch">
+        <arg name="linear_scale" value="0.025"/>
+        <arg name="angular_scale" value="0.025"/>
+    </include>
+
+    <node pkg="panther_driver" name="panther_driver" type="driver.py" output="screen" required="true">
+        <param name="can_interface" type="string" value="panther_can"/>
+        <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
+    </node>
+
+</launch>
