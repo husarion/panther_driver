@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_compile_options(-std=c++11)
 
 catkin_package(
- INCLUDE_DIRS include
+# INCLUDE_DIRS include
  LIBRARIES panther_driver
  CATKIN_DEPENDS roscpp rospy
 # DEPENDS system_lib
