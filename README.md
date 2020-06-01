@@ -140,6 +140,34 @@ sudo systemctl enable launch_driver.service
 With both service added, driver and webui start with system boot.
 Open PANTHER_IP:8000 and you will be able to drive robot with use of joystick.
 
+
+## Viewing measurement data
+
+User can preview some of the sensor data using command line
+Connect with robot through SSH:
+
+```
+ssh husarion@PANTHER_IP
+```
+
+### Battery voltage
+```
+rostopic echo /battery
+```
+
+### Encoders, motor speed, motor current
+
+```
+rostopic echo /joint_states
+```
+You will see data structured as ROS message `sensor_msgs/JointState` with fields:
+
+`position = [Front left, Front right, Rear left, Rear right]` - Encoder pulses
+
+`velocity = [Front left, Front right, Rear left, Rear right]` - Encoder pulses per second
+
+`effort = [Front left, Front right, Rear left, Rear right]` - Motor current in Amps
+
 # Used docs
 Documentation for USB-CAN converter:
 https://ucandevices.github.io/uccb.html#!#socketCAN
