@@ -78,10 +78,10 @@ def panther_driver():
     rospy.loginfo("Start with creating a network representing one CAN bus")
     network = canopen.Network()
     rospy.loginfo("Add some nodes with corresponding Object Dictionaries")
-    rear_controller = canopen.RemoteNode(1, eds_file)
-    front_controller = canopen.RemoteNode(2, eds_file)
-    network.add_node(rear_controller)
+    front_controller = canopen.RemoteNode(1, eds_file)
+    rear_controller = canopen.RemoteNode(2, eds_file)
     network.add_node(front_controller)
+    network.add_node(rear_controller)
     rospy.loginfo("Connect to the CAN bus")
     network.connect(channel=can_interface, bustype='socketcan')
 
