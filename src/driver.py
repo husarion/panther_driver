@@ -90,54 +90,56 @@ def panther_driver():
     # front_controller.sdo['Cmd_SENCNTR'][2].raw = 0        
 
     while not rospy.is_shutdown():
-        # rospy.loginfo("Set velocity: L=%f, R=%f", L_enc_speed, R_enc_speed)
-        front_controller.sdo['Cmd_CANGO'][1].raw = L_enc_speed
-        front_controller.sdo['Cmd_CANGO'][2].raw = R_enc_speed
-        rear_controller.sdo['Cmd_CANGO'][1].raw = L_enc_speed
-        rear_controller.sdo['Cmd_CANGO'][2].raw = R_enc_speed
+        try:
+            front_controller.sdo['Cmd_CANGO'][1].raw = L_enc_speed
+            front_controller.sdo['Cmd_CANGO'][2].raw = R_enc_speed
+            rear_controller.sdo['Cmd_CANGO'][1].raw = L_enc_speed
+            rear_controller.sdo['Cmd_CANGO'][2].raw = R_enc_speed
 
-        battery_msg.voltage = float(front_controller.sdo[0x210D][2].raw)/10
-        battery_msg.current = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
-        battery_publisher.publish(battery_msg)
-        
-        position_FL = front_controller.sdo['Qry_ABCNTR'][1].raw
-        position_FR = front_controller.sdo['Qry_ABCNTR'][2].raw
-        position_RL = rear_controller.sdo['Qry_ABCNTR'][1].raw
-        position_RR = rear_controller.sdo['Qry_ABCNTR'][2].raw
+            battery_msg.voltage = float(front_controller.sdo[0x210D][2].raw)/10
+            battery_msg.current = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
+            battery_publisher.publish(battery_msg)
 
-        speed_FL = front_controller.sdo['Qry_ABSPEED'][1].raw
-        speed_FR = front_controller.sdo['Qry_ABSPEED'][2].raw
-        speed_RL = rear_controller.sdo['Qry_ABSPEED'][1].raw
-        speed_RR = rear_controller.sdo['Qry_ABSPEED'][2].raw
+            position_FL = front_controller.sdo['Qry_ABCNTR'][1].raw
+            position_FR = front_controller.sdo['Qry_ABCNTR'][2].raw
+            position_RL = rear_controller.sdo['Qry_ABCNTR'][1].raw
+            position_RR = rear_controller.sdo['Qry_ABCNTR'][2].raw
 
-        motamps_FL = float(front_controller.sdo['Qry_MOTAMPS'][1].raw)/10
-        motamps_FR = float(front_controller.sdo['Qry_MOTAMPS'][2].raw)/10
-        motamps_RL = float(rear_controller.sdo['Qry_MOTAMPS'][1].raw)/10
-        motamps_RR = float(rear_controller.sdo['Qry_MOTAMPS'][2].raw)/10
-        
-        joint_state_msg.position = [position_FL, position_FR, position_RL, position_RR]
-        joint_state_msg.velocity = [speed_FL, speed_FR, speed_RL, speed_RR]
-        joint_state_msg.effort = [motamps_FL, motamps_FR, motamps_RL, motamps_RR]
-        joint_state_publisher.publish(joint_state_msg)
+            speed_FL = front_controller.sdo['Qry_ABSPEED'][1].raw
+            speed_FR = front_controller.sdo['Qry_ABSPEED'][2].raw
+            speed_RL = rear_controller.sdo['Qry_ABSPEED'][1].raw
+            speed_RR = rear_controller.sdo['Qry_ABSPEED'][2].raw
 
-        wheel_L_ang_pos = 3.14 * wheel_radius * (position_FL + position_RL) / encoder_resolution
-        wheel_R_ang_pos = 3.14 * wheel_radius * (position_FR + position_RR) / encoder_resolution
+            motamps_FL = float(front_controller.sdo['Qry_MOTAMPS'][1].raw)/10
+            motamps_FR = float(front_controller.sdo['Qry_MOTAMPS'][2].raw)/10
+            motamps_RL = float(rear_controller.sdo['Qry_MOTAMPS'][1].raw)/10
+            motamps_RR = float(rear_controller.sdo['Qry_MOTAMPS'][2].raw)/10
 
-        wheel_L_ang_vel = (3.14 * (speed_FL + speed_RL) * wheel_radius / encoder_resolution)
-        wheel_R_ang_vel = (3.14 * (speed_FR + speed_RR) * wheel_radius / encoder_resolution)
+            joint_state_msg.position = [position_FL, position_FR, position_RL, position_RR]
+            joint_state_msg.velocity = [speed_FL, speed_FR, speed_RL, speed_RR]
+            joint_state_msg.effort = [motamps_FL, motamps_FR, motamps_RL, motamps_RR]
+            joint_state_publisher.publish(joint_state_msg)
 
-        robot_angular_pos = (wheel_R_ang_pos - wheel_L_ang_pos) * wheel_radius / robot_width
-        robot_angular_vel = (wheel_R_ang_vel - wheel_L_ang_vel) * wheel_radius / robot_width
-        # rospy.loginfo("Wheel angular pos: [%f, %f], rbot angular pos: %f, angular vel: %f", wheel_L_ang_pos, wheel_R_ang_pos, robot_angular_pos, robot_angular_vel)
-        robot_x_vel = (wheel_L_ang_vel * wheel_radius + robot_angular_vel * robot_width / 2) * math.cos(robot_angular_pos)
-        robot_y_vel = (wheel_R_ang_vel * wheel_radius + robot_angular_vel * robot_width / 2) * math.sin(robot_angular_pos)
-        # rospy.loginfo("ENC: [%d, %d]",position_FL, position_FR)
-        robot_x_pos = robot_x_pos + robot_x_vel / loop_rate
-        robot_y_pos = robot_y_pos + robot_y_vel / loop_rate
+            wheel_L_ang_pos = 3.14 * wheel_radius * (position_FL + position_RL) / encoder_resolution
+            wheel_R_ang_pos = 3.14 * wheel_radius * (position_FR + position_RR) / encoder_resolution
 
-        pose_msg.position.x = robot_x_pos
-        pose_msg.position.y = robot_y_pos
-        pose_publisher.publish(pose_msg)
+            wheel_L_ang_vel = (3.14 * (speed_FL + speed_RL) * wheel_radius / encoder_resolution)
+            wheel_R_ang_vel = (3.14 * (speed_FR + speed_RR) * wheel_radius / encoder_resolution)
+
+            robot_angular_pos = (wheel_R_ang_pos - wheel_L_ang_pos) * wheel_radius / robot_width
+            robot_angular_vel = (wheel_R_ang_vel - wheel_L_ang_vel) * wheel_radius / robot_width
+            # rospy.loginfo("Wheel angular pos: [%f, %f], rbot angular pos: %f, angular vel: %f", wheel_L_ang_pos, wheel_R_ang_pos, robot_angular_pos, robot_angular_vel)
+            robot_x_vel = (wheel_L_ang_vel * wheel_radius + robot_angular_vel * robot_width / 2) * math.cos(robot_angular_pos)
+            robot_y_vel = (wheel_R_ang_vel * wheel_radius + robot_angular_vel * robot_width / 2) * math.sin(robot_angular_pos)
+            # rospy.loginfo("ENC: [%d, %d]",position_FL, position_FR)
+            robot_x_pos = robot_x_pos + robot_x_vel / loop_rate
+            robot_y_pos = robot_y_pos + robot_y_vel / loop_rate
+
+            pose_msg.position.x = robot_x_pos
+            pose_msg.position.y = robot_y_pos
+            pose_publisher.publish(pose_msg)
+        except:
+            rospy.logerr("CAN protocol error")
 
         rate.sleep()
 
