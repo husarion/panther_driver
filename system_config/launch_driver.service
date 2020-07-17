@@ -1,0 +1,10 @@
+[Unit]
+Description=Launch Panther driver
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/launch_driver.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

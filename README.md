@@ -34,106 +34,11 @@ npm install rosnodejs express socket.io yargs
 ## Set system services
 This step is not mandatory, but will make easier robot up startup process.
 
-### CAN port initialization
+Use `update_startup.sh` to set required services:
 
-Edit `/usr/bin/can_setup.sh`:
 ```
-sudo nano /usr/bin/can_setup.sh
-```
-
-Paste following content:
-```
-#!/bin/bash
-modprobe can
-modprobe can-raw
-modprobe slcan
-cd /home/husarion/can-utils
-echo "slcan_attach..."
-./slcan_attach -o -s4 -n panther_can /dev/ttyACM0
-sleep 5
-echo "slcand..."
-./slcand -o -f -s4 -F /dev/ttyACM0 panther_can &
-sleep 5
-echo "ifconfig..."
-ifconfig panther_can up
-```
-
-Make the file executable:
-```
-sudo chmod a+x /usr/bin/can_setup.sh
-```
-
-Edit `/lib/systemd/system/can-setup.service`:
-```
-sudo nano /lib/systemd/system/can-setup.service
-```
-
-Paste following content:
-```
-[Unit]
-Description=Enable CAN port for Panther robot
-After=syslog.target network.target multi-user.target nodm.service user@1000.service
-
-[Service]
-Type=simple
-ExecStartPre=/bin/sleep 15
-ExecStart=/usr/bin/can_setup.sh
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable service:
-```
-sudo systemctl enable can-setup.service
-```
-
-
-# Roslaunch driver
-
-Edit `/usr/bin/launch_driver.sh`:
-```
-sudo nano /usr/bin/launch_driver.sh
-```
-
-Paste following content:
-```
-#!/bin/bash
-# delay start of driver
-source /opt/ros/melodic/setup.sh
-source /home/husarion/husarion_ws/devel/setup.sh
-roslaunch panther_driver driver.launch
-```
-
-Make the file executable:
-```
-sudo chmod a+x /usr/bin/launch_driver.sh
-```
-
-Edit `/lib/systemd/system/launch_driver.service`:
-```
-sudo nano /lib/systemd/system/launch_driver.service
-```
-
-Paste following content:
-```
-[Unit]
-Description=Launch Panther driver
-
-[Service]
-Type=simple
-ExecStartPre=/bin/sleep 25
-ExecStart=/usr/bin/launch_driver.sh
-RemainAfterExit=yes
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable service:
-```
-sudo systemctl enable launch_driver.service
+cd scripts
+sudo ./update_startup.sh
 ```
 
 ## Usage
