@@ -57,13 +57,13 @@ def cmd_vel_callback(data):
 
     #limit max power to 1000
     if abs(RK.FR_enc_speed) > 1000:
-        RK.FR_enc_speed = 1000 * FR_enc_speed / abs(FR_enc_speed)
+        RK.FR_enc_speed = 1000 * RK.FR_enc_speed / abs(RK.FR_enc_speed)
     if abs(RK.FL_enc_speed) > 1000:
-        RK.FL_enc_speed = 1000 * FR_enc_speed / abs(FR_enc_speed)
+        RK.FL_enc_speed = 1000 * RK.FL_enc_speed / abs(RK.FL_enc_speed)
     if abs(RK.RR_enc_speed) > 1000:
-        RK.RR_enc_speed = 1000 * FR_enc_speed / abs(FR_enc_speed)
+        RK.RR_enc_speed = 1000 * RK.RR_enc_speed / abs(RK.RR_enc_speed)
     if abs(RK.RL_enc_speed) > 1000:
-        RK.RL_enc_speed = 1000 * FR_enc_speed / abs(FR_enc_speed)
+        RK.RL_enc_speed = 1000 * RK.RL_enc_speed / abs(RK.RL_enc_speed)
     
 
 
