@@ -114,31 +114,30 @@ def panther_driver():
 
     while not rospy.is_shutdown():
         try:
-            front_controller.sdo['Cmd_CANGO'][1].raw = RK.FL_enc_speed
-            front_controller.sdo['Cmd_CANGO'][2].raw = RK.FR_enc_speed
-            rear_controller.sdo['Cmd_CANGO'][1].raw = RK.RL_enc_speed
-            rear_controller.sdo['Cmd_CANGO'][2].raw = RK.RR_enc_speed
+            front_controller.sdo['Cmd_CANGO'][2].raw = L_enc_speed
+            front_controller.sdo['Cmd_CANGO'][1].raw = R_enc_speed
+            rear_controller.sdo['Cmd_CANGO'][2].raw = L_enc_speed
+            rear_controller.sdo['Cmd_CANGO'][1].raw = R_enc_speed
 
             battery_msg.voltage = float(front_controller.sdo[0x210D][2].raw)/10
             battery_msg.current = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
             battery_publisher.publish(battery_msg)
 
             #inverse kinematics
+            position_FL = front_controller.sdo['Qry_ABCNTR'][2].raw
+            position_FR = front_controller.sdo['Qry_ABCNTR'][1].raw
+            position_RL = rear_controller.sdo['Qry_ABCNTR'][2].raw
+            position_RR = rear_controller.sdo['Qry_ABCNTR'][1].raw
 
-            position_FL = front_controller.sdo['Qry_ABCNTR'][1].raw
-            position_FR = front_controller.sdo['Qry_ABCNTR'][2].raw
-            position_RL = rear_controller.sdo['Qry_ABCNTR'][1].raw
-            position_RR = rear_controller.sdo['Qry_ABCNTR'][2].raw
+            speed_FL = front_controller.sdo['Qry_ABSPEED'][2].raw
+            speed_FR = front_controller.sdo['Qry_ABSPEED'][1].raw
+            speed_RL = rear_controller.sdo['Qry_ABSPEED'][2].raw
+            speed_RR = rear_controller.sdo['Qry_ABSPEED'][1].raw
 
-            speed_FL = front_controller.sdo['Qry_ABSPEED'][1].raw
-            speed_FR = front_controller.sdo['Qry_ABSPEED'][2].raw
-            speed_RL = rear_controller.sdo['Qry_ABSPEED'][1].raw
-            speed_RR = rear_controller.sdo['Qry_ABSPEED'][2].raw
-
-            motamps_FL = float(front_controller.sdo['Qry_MOTAMPS'][1].raw)/10
-            motamps_FR = float(front_controller.sdo['Qry_MOTAMPS'][2].raw)/10
-            motamps_RL = float(rear_controller.sdo['Qry_MOTAMPS'][1].raw)/10
-            motamps_RR = float(rear_controller.sdo['Qry_MOTAMPS'][2].raw)/10
+            motamps_FL = float(front_controller.sdo['Qry_MOTAMPS'][2].raw)/10
+            motamps_FR = float(front_controller.sdo['Qry_MOTAMPS'][1].raw)/10
+            motamps_RL = float(rear_controller.sdo['Qry_MOTAMPS'][2].raw)/10
+            motamps_RR = float(rear_controller.sdo['Qry_MOTAMPS'][1].raw)/10
 
             joint_state_msg.position = [position_FL, position_FR, position_RL, position_RR]
             joint_state_msg.velocity = [speed_FL, speed_FR, speed_RL, speed_RR]
