@@ -6,8 +6,6 @@ from sensor_msgs.msg import BatteryState
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
-
-
 class RobotKinematics():
     def __init__(self):
         self.lin_x = 0
