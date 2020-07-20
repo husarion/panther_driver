@@ -39,5 +39,13 @@ install(FILES
   launch/driver.launch
   launch/driver_omni.launch
   launch/webui.launch
+  launch/joy_mecanum.launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+)
+
+install(FILES
+  params/joystick.yaml
+  params/panther.yaml
+  params/joy_teleop.yaml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/params
 )
