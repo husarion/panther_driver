@@ -1,6 +1,6 @@
 <launch>
 
-    <node pkg="panther_driver" name="panther_driver" type="driver.py" output="screen" required="true">
+    <node pkg="panther_driver" name="panther_driver" type="driver_omni.py" output="screen" required="true">
         <param name="can_interface" type="string" value="panther_can"/>
         <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
     </node>

@@ -1,0 +1,10 @@
+[Unit]
+Description=Launch Panther omni wheel driver
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/launch_driver_omni.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
