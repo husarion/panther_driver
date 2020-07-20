@@ -41,6 +41,13 @@ cd scripts
 sudo ./update_startup.sh
 ```
 
+For omni wheel use `update_startup_omni.sh` to set required services:
+
+```
+cd scripts
+sudo ./update_startup_omni.sh
+```
+
 ## Usage
 With both service added, driver and webui start with system boot.
 Open PANTHER_IP:8000 and you will be able to drive robot with use of joystick.

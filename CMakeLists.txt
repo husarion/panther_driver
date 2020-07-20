@@ -30,11 +30,14 @@ include_directories(
 catkin_install_python(PROGRAMS
   src/driver
   src/driver.py
+  src/driver_omni
+  src/driver_omni.py
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
 install(FILES
   launch/driver.launch
+  launch/driver_omni.launch
   launch/webui.launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
