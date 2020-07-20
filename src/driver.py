@@ -18,7 +18,18 @@ R_enc_speed = 0
 robot_x_pos = 0
 robot_y_pos = 0
 
+def euler_to_quaternion(yaw, pitch, roll):
+
+        qx = math.sin(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) - math.cos(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
+        qy = math.cos(roll/2) * math.sin(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.cos(pitch/2) * math.sin(yaw/2)
+        qz = math.cos(roll/2) * math.cos(pitch/2) * math.sin(yaw/2) - math.sin(roll/2) * math.sin(pitch/2) * math.cos(yaw/2)
+        qw = math.cos(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
+
+        return [qx, qy, qz, qw]
+
 def cmd_vel_callback(data):
+    # forward kinematics
+
     global linear_vel
     global angular_vel
     global L_enc_speed
@@ -31,6 +42,7 @@ def cmd_vel_callback(data):
     R_wheel_angular_velocity = float(R_wheel_lin_speed) / float(wheel_radius)
     L_enc_speed = float(encoder_resolution) * float(L_wheel_angular_velocity) / (2 * math.pi)
     R_enc_speed = float(encoder_resolution) * float(R_wheel_angular_velocity) / (2 * math.pi)
+
     
 def panther_driver():
     global robot_width
@@ -100,6 +112,7 @@ def panther_driver():
             battery_msg.current = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
             battery_publisher.publish(battery_msg)
 
+            #inverse kinematics
             position_FL = front_controller.sdo['Qry_ABCNTR'][2].raw
             position_FR = front_controller.sdo['Qry_ABCNTR'][1].raw
             position_RL = rear_controller.sdo['Qry_ABCNTR'][2].raw
@@ -134,9 +147,15 @@ def panther_driver():
             # rospy.loginfo("ENC: [%d, %d]",position_FL, position_FR)
             robot_x_pos = robot_x_pos + robot_x_vel / loop_rate
             robot_y_pos = robot_y_pos + robot_y_vel / loop_rate
+            robot_th_pos = robot_th_pos + robot_angular_pos / loop_rate
+
+            qz, qw = euler_to_quaternion(0,0,robot_th_pos)
+            # convert robot angular pose to quaternion and publish to pose_msg
 
             pose_msg.position.x = robot_x_pos
             pose_msg.position.y = robot_y_pos
+            pose_msg.orientation.z = qz
+            pose_msg.orientation.w = qw
             pose_publisher.publish(pose_msg)
         except:
             rospy.logerr("CAN protocol error")
