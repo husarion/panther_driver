@@ -55,6 +55,18 @@ def cmd_vel_callback(data):
     RK.RR_enc_speed = RK.power_factor * float(wheel_rear_right) * float(RK.encoder_resolution) / (2 * math.pi) # motor power / cmd cango
     RK.RL_enc_speed = RK.power_factor * float(wheel_rear_left) * float(RK.encoder_resolution) / (2 * math.pi) # motor power / cmd cango
 
+    #limit max power to 1000
+    if abs(RK.FR_enc_speed) > 1000:
+        RK.FR_enc_speed = 1000 * FR_enc_speed / abs(FR_enc_speed)
+    if abs(RK.FL_enc_speed) > 1000:
+        RK.FL_enc_speed = 1000 * FR_enc_speed / abs(FR_enc_speed)
+    if abs(RK.RR_enc_speed) > 1000:
+        RK.RR_enc_speed = 1000 * FR_enc_speed / abs(FR_enc_speed)
+    if abs(RK.RL_enc_speed) > 1000:
+        RK.RL_enc_speed = 1000 * FR_enc_speed / abs(FR_enc_speed)
+    
+
+
     ## Additional data not needed for setting drive commands
 
 
