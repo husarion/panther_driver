@@ -35,5 +35,6 @@ catkin_install_python(PROGRAMS
 
 install(FILES
   launch/driver.launch
+  launch/webui.launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
