@@ -6,6 +6,10 @@ from sensor_msgs.msg import BatteryState
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
+import RPi.GPIO as GPIO
+
+FRONT_CAN_GPIO = 36
+REAR_CAN_GPIO = 40
 class RobotKinematics():
     def __init__(self):
         self.lin_x = 0
@@ -69,12 +73,18 @@ def cmd_vel_callback(data):
 
     ## Additional data not needed for setting drive commands
 
+def shutdownHook():
+    rospy.logerr("cleaning gpio")
+    GPIO.cleanup()
 
     
 def panther_driver():
     global RK
+    global FRONT_CAN_GPIO
+    global REAR_CAN_GPIO
 
     rospy.init_node('~', anonymous=True)
+    rospy.on_shutdown(shutdownHook)
     battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
     battery_msg = BatteryState()
 
@@ -128,17 +138,28 @@ def panther_driver():
     robot_y_pos = 0
     robot_th_pos = 0
 
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(FRONT_CAN_GPIO, GPIO.OUT, initial=GPIO.LOW)
+    GPIO.setup(REAR_CAN_GPIO, GPIO.OUT, initial=GPIO.LOW)
+
+
     while not rospy.is_shutdown():
         try:
             rospy.logerr("RK.FL_enc_speed: %s" % RK.FL_enc_speed)
             rospy.logerr("RK.FR_enc_speed: %s" % RK.FR_enc_speed)
             rospy.logerr("RK.RL_enc_speed: %s" % RK.RL_enc_speed)
             rospy.logerr("RK.RR_enc_speed: %s" % RK.RR_enc_speed)
-
+            
+            #GPIO high for can front
+            GPIO.output(FRONT_CAN_GPIO, GPIO.HIGH)
             front_controller.sdo['Cmd_CANGO'][2].raw = RK.FL_enc_speed
             front_controller.sdo['Cmd_CANGO'][1].raw = RK.FR_enc_speed
+            GPIO.output(FRONT_CAN_GPIO, GPIO.LOW)
+            #GPIO high fro can rear
+            GPIO.output(REAR_CAN_GPIO, GPIO.HIGH)
             rear_controller.sdo['Cmd_CANGO'][2].raw = RK.RL_enc_speed
             rear_controller.sdo['Cmd_CANGO'][1].raw = RK.RR_enc_speed
+            GPIO.output(REAR_CAN_GPIO, GPIO.LOW)
 
             battery_msg.voltage = float(front_controller.sdo[0x210D][2].raw)/10
             battery_msg.current = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
