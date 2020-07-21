@@ -93,7 +93,7 @@ def panther_driver():
     pose_msg.orientation.z = 0
     pose_msg.orientation.w = 1
 
-    rospy.Subscriber("/cmd_vel", Twist, cmd_vel_callback)
+    rospy.Subscriber("/cmd_vel", Twist, cmd_vel_callback, queue_size=1)
 
     can_interface = rospy.get_param('~can_interface', 'panther_can')
     RK.robot_width = rospy.get_param('~robot_width', 0.682)
