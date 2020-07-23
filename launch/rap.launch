@@ -2,9 +2,18 @@
 
     <node pkg="tf" type="static_transform_publisher" name="panther_laser" args="0 0 0 3.14 0 0 base_link laser 100" />
 
-    <include file="$(find route_admin_panel)/launch/panel.launch"></include>
+    <include file="$(find route_admin_panel)/launch/panel.launch">
+        <arg name="node_name" value="rap_node"/>
+    </include>
 
-    <include file="$(find rplidar_ros)/launch/rplidar_a3.launch"></include>
+    <include file="$(find webui-ros-joystick)/launch/webui.launch">
+        <arg name="linear_scale" value="1"/>
+        <arg name="angular_scale" value="1"/>
+        <arg name="wait_nodes" value="panther_driver"/>
+        <arg name="node_name" value="joystck_server"/>
+    </include>
+
+    <include file="$(find rplidar_ros)/launch/rplidar_s1.launch"></include>
 
     <node pkg="move_base" type="move_base" name="move_base" output="screen">
         <param name="recovery_behavior_enabled" value="true"/>
