@@ -7,12 +7,8 @@ from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
-import RPi.GPIO as GPIO
-import tf_conversions
 import tf2_ros
 
-FRONT_CAN_GPIO = 36
-REAR_CAN_GPIO = 40
 class RobotKinematics():
     def __init__(self):
         self.lin_x = 0
@@ -123,8 +119,8 @@ def panther_driver():
         rospy.logerr("eds_file not defined, can not start CAN interface")
         return
 
-    loop_rate = 10
-    rate = rospy.Rate(loop_rate) # 1000hz
+    loop_rate = 50
+    rate = rospy.Rate(loop_rate)
     rospy.loginfo("Start with creating a network representing one CAN bus")
     network = canopen.Network()
     rospy.loginfo("Add some nodes with corresponding Object Dictionaries")
