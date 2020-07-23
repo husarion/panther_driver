@@ -1,6 +1,6 @@
 <launch>
 
-    <node pkg="tf" type="static_transform_publisher" name="panther_laser" args="0 0 0 3.14 0 0 base_link laser 100" />
+    <node pkg="tf" type="static_transform_publisher" name="panther_laser" args="0.135 0 0 3.14 0 0 base_link laser 100" />
 
     <include file="$(find route_admin_panel)/launch/panel.launch">
         <arg name="node_name" value="rap_node"/>
