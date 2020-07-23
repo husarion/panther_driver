@@ -6,7 +6,10 @@ from sensor_msgs.msg import BatteryState
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
+from geometry_msgs.msg import TransformStamped
 import RPi.GPIO as GPIO
+import tf_conversions
+import tf2_ros
 
 FRONT_CAN_GPIO = 36
 REAR_CAN_GPIO = 40
@@ -85,7 +88,8 @@ def panther_driver():
     global REAR_CAN_GPIO
 
     rospy.init_node('~', anonymous=True)
-    # rospy.on_shutdown(shutdownHook)
+    br = tf2_ros.TransformBroadcaster()
+    tf = TransformStamped()
     battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
     battery_msg = BatteryState()
 
@@ -186,6 +190,7 @@ def panther_driver():
             # joint_state_msg.velocity = [speed_FL, speed_FR, speed_RL, speed_RR]
             # joint_state_msg.effort = [motamps_FL, motamps_FR, motamps_RL, motamps_RR]
             # joint_state_publisher.publish(joint_state_msg)
+
             # position_FL / RK.encoder_resolution - > full wheel rotations  
             wheel_FL_ang_pos = 2 * math.pi * position_FL / RK.encoder_resolution #radians
             wheel_FR_ang_pos = 2 * math.pi * position_FR / RK.encoder_resolution
@@ -223,6 +228,19 @@ def panther_driver():
             pose_msg.orientation.z = qz
             pose_msg.orientation.w = qw
             pose_publisher.publish(pose_msg)
+
+            tf.header.stamp = rospy.Time.now()
+            tf.header.frame_id = "odom"
+            tf.child_frame_id = "base_link"
+            tf.transform.translation.x = robot_x_pos
+            tf.transform.translation.y = robot_y_pos
+            tf.transform.translation.z = 0.0
+            tf.transform.rotation.x = qx
+            tf.transform.rotation.y = qy
+            tf.transform.rotation.z = qz
+            tf.transform.rotation.w = qw
+            br.sendTransform(tf)
+
         except:
             rospy.logerr("CAN protocol error")
 
