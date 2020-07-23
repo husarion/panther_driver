@@ -47,5 +47,6 @@ install(FILES
   params/joystick.yaml
   params/panther.yaml
   params/joy_teleop.yaml
+  params/roboteq_motor_controllers_v60.eds
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/params
 )
