@@ -161,7 +161,6 @@ def panther_driver():
             front_controller.sdo['Cmd_CANGO'][1].raw = RK.FR_enc_speed
             rear_controller.sdo['Cmd_CANGO'][2].raw = RK.RL_enc_speed
             rear_controller.sdo['Cmd_CANGO'][1].raw = RK.RR_enc_speed
-            # GPIO.output(REAR_CAN_GPIO, GPIO.LOW)
 
             battery_msg.voltage = float(front_controller.sdo[0x210D][2].raw)/10
             battery_msg.current = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
@@ -172,8 +171,6 @@ def panther_driver():
             position_FR = front_controller.sdo['Qry_ABCNTR'][1].raw
             position_RL = rear_controller.sdo['Qry_ABCNTR'][2].raw
             position_RR = rear_controller.sdo['Qry_ABCNTR'][1].raw
-
-            # rospy.logerr("wheel rr enc counter %s" % position_RR)
 
             # speed_FL = front_controller.sdo['Qry_ABSPEED'][2].raw
             # speed_FR = front_controller.sdo['Qry_ABSPEED'][1].raw
@@ -204,16 +201,6 @@ def panther_driver():
             wheel_FR_ang_pos_last = wheel_FR_ang_pos
             wheel_RL_ang_pos_last = wheel_RL_ang_pos
             wheel_RR_ang_pos_last = wheel_RR_ang_pos
-            # rospy.logerr("wheel rr ang pos %s" % wheel_RR_ang_pos)
-            # wheel_FL_ang_vel = 2 * math.pi * pos_der_FL / RK.encoder_resolution #rad/s
-            # wheel_FR_ang_vel = 2 * math.pi * pos_der_FR / RK.encoder_resolution
-            # wheel_RL_ang_vel = 2 * math.pi * pos_der_RL / RK.encoder_resolution
-            # wheel_RR_ang_vel = 2 * math.pi * pos_der_RR / RK.encoder_resolution
-            # rospy.logerr("wheel rr ang vel %s" % wheel_RR_ang_vel)
-
-            #rospy.loginfo("time delta %s" % dt_)
-            #rospy.loginfo("wheel ang pose FL %0.3f , pose FR %0.3f , pose RL %0.3f , pose RR %0.3f" % (wheel_FL_ang_pos , wheel_FR_ang_pos , wheel_RL_ang_pos , wheel_RR_ang_pos))
-            #rospy.loginfo("wheel ang vel FL %0.3f , vel FR %0.3f , vel RL %0.3f , vel RR %0.3f" % (wheel_FL_ang_vel , wheel_FR_ang_vel , wheel_RL_ang_vel , wheel_RR_ang_vel))
 
             RK.wheels_angular_velocity = [wheel_FL_ang_vel,wheel_FR_ang_vel,wheel_RR_ang_vel,wheel_RL_ang_vel]
             linear_velocity_x_ = (wheel_FL_ang_vel + wheel_FR_ang_vel + wheel_RL_ang_vel + wheel_RR_ang_vel) * (RK.wheel_radius/4)
@@ -231,6 +218,8 @@ def panther_driver():
             
             pose_msg.position.x = robot_x_pos
             pose_msg.position.y = robot_y_pos
+            pose_msg.orientation.x = qx
+            pose_msg.orientation.y = qy
             pose_msg.orientation.z = qz
             pose_msg.orientation.w = qw
             pose_publisher.publish(pose_msg)
