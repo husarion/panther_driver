@@ -69,19 +69,9 @@ def cmd_vel_callback(data):
     if abs(RK.RL_enc_speed) > 1000:
         RK.RL_enc_speed = 1000 * RK.RL_enc_speed / abs(RK.RL_enc_speed)
     
-
-
-    ## Additional data not needed for setting drive commands
-
-# def shutdownHook():
-#     rospy.logerr("cleaning gpio")
-#     GPIO.cleanup()
-
     
 def panther_driver():
     global RK
-    global FRONT_CAN_GPIO
-    global REAR_CAN_GPIO
 
     rospy.init_node('~', anonymous=True)
     br = tf2_ros.TransformBroadcaster()
@@ -206,7 +196,7 @@ def panther_driver():
             RK.wheels_angular_velocity = [wheel_FL_ang_vel,wheel_FR_ang_vel,wheel_RR_ang_vel,wheel_RL_ang_vel]
             linear_velocity_x_ = (wheel_FL_ang_vel + wheel_FR_ang_vel + wheel_RL_ang_vel + wheel_RR_ang_vel) * (RK.wheel_radius/4)
             linear_velocity_y_ = (-wheel_FL_ang_vel + wheel_FR_ang_vel + wheel_RL_ang_vel - wheel_RR_ang_vel) * (RK.wheel_radius/4)
-            angular_velocity_z_ = (-wheel_FL_ang_vel + wheel_FR_ang_vel - wheel_RL_ang_vel + wheel_RR_ang_vel) * (RK.wheel_radius/(4 * (RK.robot_width + RK.robot_length)))
+            angular_velocity_z_ = (-wheel_FL_ang_vel + wheel_FR_ang_vel - wheel_RL_ang_vel + wheel_RR_ang_vel) * (RK.wheel_radius/(4 * (RK.robot_width / 2 + RK.robot_length / 2)))
             
             delta_heading = angular_velocity_z_ / dt_ # [radians]
             robot_th_pos = robot_th_pos + delta_heading
