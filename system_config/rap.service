@@ -1,0 +1,11 @@
+[Unit]
+Description=Launch route admin panel
+After=syslog.target network.target multi-user.target nodm.service user@1000.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/rap.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

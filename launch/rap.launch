@@ -1,0 +1,19 @@
+<launch>
+
+    <node pkg="tf" type="static_transform_publisher" name="panther_laser" args="0 0 0 3.14 0 0 base_link laser 100" />
+
+    <include file="$(find route_admin_panel)/launch/panel.launch"></include>
+
+    <include file="$(find rplidar_ros)/launch/rplidar_a3.launch"></include>
+
+    <node pkg="move_base" type="move_base" name="move_base" output="screen">
+        <param name="recovery_behavior_enabled" value="true"/>
+        <param name="controller_frequency" value="10.0"/>
+        <rosparam file="$(find panther_driver)/params/costmap_common_params.yaml" command="load" ns="global_costmap" />
+        <rosparam file="$(find panther_driver)/params/costmap_common_params.yaml" command="load" ns="local_costmap" />
+        <rosparam file="$(find panther_driver)/params/local_costmap_params.yaml" command="load" />
+        <rosparam file="$(find panther_driver)/params/global_costmap_params.yaml" command="load" />
+        <rosparam file="$(find panther_driver)/params/trajectory_planner.yaml" command="load" />
+    </node>
+
+</launch>

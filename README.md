@@ -48,6 +48,16 @@ cd scripts
 sudo ./update_startup_omni.sh
 ```
 
+## Setup RAP startup in NUC
+
+### rap script
+cp ../system_config/rap.sh  /usr/bin/rap.sh
+chmod a+x /usr/bin/rap.sh
+### rap service
+cp ../system_config/rap.service /lib/systemd/system/rap.service
+systemctl enable rap.service
+
+
 ## Usage
 With both service added, driver and webui start with system boot.
 Open PANTHER_IP:8000 and you will be able to drive robot with use of joystick.
