@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /home/husarion/.bashrc
+eval "$(cat ~/.bashrc | tail -n +10)"
 source /opt/ros/$(rosversion -d)/setup.sh
 source /home/husarion/husarion_ws/devel/setup.sh
 roslaunch panther_driver webui.launch &
