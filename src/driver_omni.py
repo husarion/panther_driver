@@ -27,7 +27,7 @@ class RobotKinematics():
         self.robot_y_pos = 0
         self.robot_th_pos = 0
         self.power_factor = 0
-        # self.roller_radius = 0
+        self.cmd_vel_command_time = rospy.Time()
 
 
 def euler_to_quaternion(yaw, pitch, roll):
@@ -44,6 +44,7 @@ RK = RobotKinematics()
 def cmd_vel_callback(data):
     # forward kinematics
     global RK
+    RK.cmd_vel_command_time = rospy.Time.now()
     RK.lin_x = data.linear.x # m/s
     RK.lin_y = data.linear.y
     RK.ang_z = data.angular.z # rad/s
@@ -73,9 +74,9 @@ def cmd_vel_callback(data):
 
     ## Additional data not needed for setting drive commands
 
-def shutdownHook():
-    rospy.logerr("cleaning gpio")
-    GPIO.cleanup()
+# def shutdownHook():
+#     rospy.logerr("cleaning gpio")
+#     GPIO.cleanup()
 
     
 def panther_driver():
@@ -84,7 +85,7 @@ def panther_driver():
     global REAR_CAN_GPIO
 
     rospy.init_node('~', anonymous=True)
-    rospy.on_shutdown(shutdownHook)
+    # rospy.on_shutdown(shutdownHook)
     battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
     battery_msg = BatteryState()
 
@@ -109,7 +110,7 @@ def panther_driver():
     RK.robot_width = rospy.get_param('~robot_width', 0.682)
     RK.robot_length = rospy.get_param('~robot_length', 0.44)
     RK.wheel_radius = rospy.get_param('~wheel_radius', 0.1015)
-    RK.encoder_resolution = rospy.get_param('~encoder_resolution', 30*400) 
+    RK.encoder_resolution = rospy.get_param('~encoder_resolution', 30*400*4) 
     RK.power_factor = rospy.get_param('~power_factor', 0.04166667)
 
     if rospy.has_param('~eds_file'):
@@ -119,7 +120,7 @@ def panther_driver():
         return
 
     loop_rate = 10
-    rate = rospy.Rate(loop_rate) # 10hz
+    rate = rospy.Rate(loop_rate) # 1000hz
     rospy.loginfo("Start with creating a network representing one CAN bus")
     network = canopen.Network()
     rospy.loginfo("Add some nodes with corresponding Object Dictionaries")
@@ -134,32 +135,33 @@ def panther_driver():
     # front_controller.sdo['Cmd_SENCNTR'][1].raw = 0
     # front_controller.sdo['Cmd_SENCNTR'][2].raw = 0        
 
-    robot_x_pos = 0
-    robot_y_pos = 0
-    robot_th_pos = 0
+    robot_x_pos = 0.0
+    robot_y_pos = 0.0
+    robot_th_pos = 0.0
 
-    GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(FRONT_CAN_GPIO, GPIO.OUT, initial=GPIO.LOW)
-    GPIO.setup(REAR_CAN_GPIO, GPIO.OUT, initial=GPIO.LOW)
-
+    wheel_FL_ang_pos_last = 0.0
+    wheel_FR_ang_pos_last = 0.0
+    wheel_RL_ang_pos_last = 0.0
+    wheel_RR_ang_pos_last = 0.0
+    last_time = rospy.Time.now()
 
     while not rospy.is_shutdown():
         try:
-            rospy.logerr("RK.FL_enc_speed: %s" % RK.FL_enc_speed)
-            rospy.logerr("RK.FR_enc_speed: %s" % RK.FR_enc_speed)
-            rospy.logerr("RK.RL_enc_speed: %s" % RK.RL_enc_speed)
-            rospy.logerr("RK.RR_enc_speed: %s" % RK.RR_enc_speed)
+            now = rospy.Time.now()
+            dt_ = (now - last_time).to_sec()
+            last_time = now
             
-            #GPIO high for can front
-            GPIO.output(FRONT_CAN_GPIO, GPIO.HIGH)
+            if((now - RK.cmd_vel_command_time) > rospy.Duration(secs=0.2)):
+                RK.FL_enc_speed = 0.0
+                RK.FR_enc_speed = 0.0
+                RK.RL_enc_speed = 0.0
+                RK.RR_enc_speed = 0.0 
+
             front_controller.sdo['Cmd_CANGO'][2].raw = RK.FL_enc_speed
             front_controller.sdo['Cmd_CANGO'][1].raw = RK.FR_enc_speed
-            GPIO.output(FRONT_CAN_GPIO, GPIO.LOW)
-            #GPIO high fro can rear
-            GPIO.output(REAR_CAN_GPIO, GPIO.HIGH)
             rear_controller.sdo['Cmd_CANGO'][2].raw = RK.RL_enc_speed
             rear_controller.sdo['Cmd_CANGO'][1].raw = RK.RR_enc_speed
-            GPIO.output(REAR_CAN_GPIO, GPIO.LOW)
+            # GPIO.output(REAR_CAN_GPIO, GPIO.LOW)
 
             battery_msg.voltage = float(front_controller.sdo[0x210D][2].raw)/10
             battery_msg.current = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
@@ -171,47 +173,62 @@ def panther_driver():
             position_RL = rear_controller.sdo['Qry_ABCNTR'][2].raw
             position_RR = rear_controller.sdo['Qry_ABCNTR'][1].raw
 
-            speed_FL = front_controller.sdo['Qry_ABSPEED'][2].raw
-            speed_FR = front_controller.sdo['Qry_ABSPEED'][1].raw
-            speed_RL = rear_controller.sdo['Qry_ABSPEED'][2].raw
-            speed_RR = rear_controller.sdo['Qry_ABSPEED'][1].raw
+            # rospy.logerr("wheel rr enc counter %s" % position_RR)
 
-            motamps_FL = float(front_controller.sdo['Qry_MOTAMPS'][2].raw)/10
-            motamps_FR = float(front_controller.sdo['Qry_MOTAMPS'][1].raw)/10
-            motamps_RL = float(rear_controller.sdo['Qry_MOTAMPS'][2].raw)/10
-            motamps_RR = float(rear_controller.sdo['Qry_MOTAMPS'][1].raw)/10
+            # speed_FL = front_controller.sdo['Qry_ABSPEED'][2].raw
+            # speed_FR = front_controller.sdo['Qry_ABSPEED'][1].raw
+            # speed_RL = rear_controller.sdo['Qry_ABSPEED'][2].raw
+            # speed_RR = rear_controller.sdo['Qry_ABSPEED'][1].raw
 
-            joint_state_msg.position = [position_FL, position_FR, position_RL, position_RR]
-            joint_state_msg.velocity = [speed_FL, speed_FR, speed_RL, speed_RR]
-            joint_state_msg.effort = [motamps_FL, motamps_FR, motamps_RL, motamps_RR]
-            joint_state_publisher.publish(joint_state_msg)
+            # motamps_FL = float(front_controller.sdo['Qry_MOTAMPS'][2].raw)/10
+            # motamps_FR = float(front_controller.sdo['Qry_MOTAMPS'][1].raw)/10
+            # motamps_RL = float(rear_controller.sdo['Qry_MOTAMPS'][2].raw)/10
+            # motamps_RR = float(rear_controller.sdo['Qry_MOTAMPS'][1].raw)/10
 
-            wheel_FL_ang_pos = 2 * 3.14 * RK.wheel_radius * position_FL / RK.encoder_resolution 
-            wheel_FR_ang_pos = 2 * 3.14 * RK.wheel_radius * position_FR / RK.encoder_resolution
-            wheel_RL_ang_pos = 2 * 3.14 * RK.wheel_radius * position_RL / RK.encoder_resolution
-            wheel_RR_ang_pos = 2 * 3.14 * RK.wheel_radius * position_RR / RK.encoder_resolution
+            # joint_state_msg.position = [position_FL, position_FR, position_RL, position_RR]
+            # joint_state_msg.velocity = [speed_FL, speed_FR, speed_RL, speed_RR]
+            # joint_state_msg.effort = [motamps_FL, motamps_FR, motamps_RL, motamps_RR]
+            # joint_state_publisher.publish(joint_state_msg)
+            # position_FL / RK.encoder_resolution - > full wheel rotations  
+            wheel_FL_ang_pos = 2 * math.pi * position_FL / RK.encoder_resolution #radians
+            wheel_FR_ang_pos = 2 * math.pi * position_FR / RK.encoder_resolution
+            wheel_RL_ang_pos = 2 * math.pi * position_RL / RK.encoder_resolution
+            wheel_RR_ang_pos = 2 * math.pi * position_RR / RK.encoder_resolution
 
-            wheel_FL_ang_vel = 2 * 3.14 * RK.wheel_radius * speed_FL / RK.encoder_resolution
-            wheel_FR_ang_vel = 2 * 3.14 * RK.wheel_radius * speed_FR / RK.encoder_resolution
-            wheel_RL_ang_vel = 2 * 3.14 * RK.wheel_radius * speed_RL / RK.encoder_resolution
-            wheel_RR_ang_vel = 2 * 3.14 * RK.wheel_radius * speed_RR / RK.encoder_resolution
+            wheel_FL_ang_vel = (wheel_FL_ang_pos - wheel_FL_ang_pos_last) * dt_ #rad/s
+            wheel_FR_ang_vel = (wheel_FR_ang_pos - wheel_FR_ang_pos_last) * dt_ 
+            wheel_RL_ang_vel = (wheel_RL_ang_pos - wheel_RL_ang_pos_last) * dt_
+            wheel_RR_ang_vel = (wheel_RR_ang_pos - wheel_RR_ang_pos_last) * dt_
+
+            wheel_FL_ang_pos_last = wheel_FL_ang_pos
+            wheel_FR_ang_pos_last = wheel_FR_ang_pos
+            wheel_RL_ang_pos_last = wheel_RL_ang_pos
+            wheel_RR_ang_pos_last = wheel_RR_ang_pos
+            # rospy.logerr("wheel rr ang pos %s" % wheel_RR_ang_pos)
+            # wheel_FL_ang_vel = 2 * math.pi * pos_der_FL / RK.encoder_resolution #rad/s
+            # wheel_FR_ang_vel = 2 * math.pi * pos_der_FR / RK.encoder_resolution
+            # wheel_RL_ang_vel = 2 * math.pi * pos_der_RL / RK.encoder_resolution
+            # wheel_RR_ang_vel = 2 * math.pi * pos_der_RR / RK.encoder_resolution
+            # rospy.logerr("wheel rr ang vel %s" % wheel_RR_ang_vel)
+
+            #rospy.loginfo("time delta %s" % dt_)
+            #rospy.loginfo("wheel ang pose FL %0.3f , pose FR %0.3f , pose RL %0.3f , pose RR %0.3f" % (wheel_FL_ang_pos , wheel_FR_ang_pos , wheel_RL_ang_pos , wheel_RR_ang_pos))
+            #rospy.loginfo("wheel ang vel FL %0.3f , vel FR %0.3f , vel RL %0.3f , vel RR %0.3f" % (wheel_FL_ang_vel , wheel_FR_ang_vel , wheel_RL_ang_vel , wheel_RR_ang_vel))
 
             RK.wheels_angular_velocity = [wheel_FL_ang_vel,wheel_FR_ang_vel,wheel_RR_ang_vel,wheel_RL_ang_vel]
-
-            linear_velocity_x_ = -(-wheel_FL_ang_vel + wheel_FR_ang_vel - wheel_RL_ang_vel + wheel_RR_ang_vel) * (RK.wheel_radius/4)
-            linear_velocity_y_ = (wheel_FL_ang_vel + wheel_FR_ang_vel - wheel_RL_ang_vel - wheel_RR_ang_vel) * (RK.wheel_radius/4)
-            angular_velocity_z_ = (wheel_FL_ang_vel + wheel_FR_ang_vel + wheel_RL_ang_vel +wheel_RR_ang_vel) * (RK.wheel_radius/(4 * (RK.robot_width + RK.robot_length)))
-
-            delta_heading = angular_velocity_z_ / loop_rate # [radians]
-            delta_x = (linear_velocity_x_ * cos(heading_) - linear_velocity_y_ * sin(heading_)) / loop_rate # [m]
-            delta_y = (linear_velocity_x_ * sin(heading_) + linear_velocity_y_ * cos(heading_)) / loop_rate # [m]
-
+            linear_velocity_x_ = (wheel_FL_ang_vel + wheel_FR_ang_vel + wheel_RL_ang_vel + wheel_RR_ang_vel) * (RK.wheel_radius/4)
+            linear_velocity_y_ = (-wheel_FL_ang_vel + wheel_FR_ang_vel + wheel_RL_ang_vel - wheel_RR_ang_vel) * (RK.wheel_radius/4)
+            angular_velocity_z_ = (-wheel_FL_ang_vel + wheel_FR_ang_vel - wheel_RL_ang_vel + wheel_RR_ang_vel) * (RK.wheel_radius/(4 * (RK.robot_width + RK.robot_length)))
+            
+            delta_heading = angular_velocity_z_ / dt_ # [radians]
+            robot_th_pos = robot_th_pos + delta_heading
+            delta_x = (linear_velocity_x_ * math.cos(robot_th_pos) - linear_velocity_y_ * math.sin(robot_th_pos)) / dt_ # [m]
+            delta_y = (linear_velocity_x_ * math.sin(robot_th_pos) + linear_velocity_y_ * math.cos(robot_th_pos)) / dt_ # [m]
             robot_x_pos = robot_x_pos + delta_x
             robot_y_pos = robot_y_pos + delta_y
-            robot_th_pos = robot_th_pos + delta_heading
-
-            qz, qw = euler_to_quaternion(0,0,robot_th_pos)
-
+            #rospy.loginfo("Robot pos: [x, y, th]: [%0.3f, %0.3f, %0.3f]" % (robot_x_pos, robot_y_pos, robot_th_pos))
+            qx, qy, qz, qw = euler_to_quaternion(robot_th_pos,0,0)
+            
             pose_msg.position.x = robot_x_pos
             pose_msg.position.y = robot_y_pos
             pose_msg.orientation.z = qz
