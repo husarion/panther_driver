@@ -11,7 +11,6 @@ import tf2_ros
 
 class PantherKinematics():
     def __init__(self):
-        print("initializing panther driver")
         self.lin_x = 0
         self.lin_y = 0
         self.ang_z = 0

@@ -71,8 +71,8 @@ class PantherMix(PantherKinematics):
 
     def forwardKinematics(self):
         # Mix (normal front, mecanum back)
-        wheel_front_right = (1/self.wheel_radius) * (self.lin_x + (self.robot_width / 2) * self.ang_z) # rad/s
-        wheel_front_left = (1/self.wheel_radius) * (self.lin_x - (self.robot_width / 2) * self.ang_z)
+        wheel_front_right = (1/self.wheel_radius) * (self.lin_x + (self.robot_width) * self.ang_z) # rad/s
+        wheel_front_left = (1/self.wheel_radius) * (self.lin_x - (self.robot_width) * self.ang_z)
         wheel_rear_right = (1/self.wheel_radius) * (self.lin_x + (self.robot_width + self.robot_length * 2) * self.ang_z)
         wheel_rear_left = (1/self.wheel_radius) * (self.lin_x - (self.robot_width + self.robot_length * 2) * self.ang_z)
         self.FR_enc_speed, self.FL_enc_speed , self.RR_enc_speed, self.RL_enc_speed = self._getMotorSpeed(wheel_front_right,wheel_front_left,wheel_rear_right,wheel_rear_left)
@@ -82,7 +82,7 @@ class PantherMix(PantherKinematics):
         # Mix (normal front, mecanum back)
         linear_velocity_x_ = (wheel_FL_ang_vel + wheel_FR_ang_vel + wheel_RL_ang_vel + wheel_RR_ang_vel) * (self.wheel_radius/4)
         linear_velocity_y_ = 0.0
-        angular_velocity_z_ = (-wheel_FL_ang_vel + wheel_FR_ang_vel) * (self.wheel_radius/(4 * (self.robot_width / 2 + self.robot_length / 2)))
+        angular_velocity_z_ = (-wheel_FL_ang_vel + wheel_FR_ang_vel - wheel_RL_ang_vel + wheel_RR_ang_vel) * (self.wheel_radius/(4 * (self.robot_width / 2 + self.robot_length / 2)))
         
         delta_heading = angular_velocity_z_ / dt_ # [radians]
         self.robot_th_pos = self.robot_th_pos + delta_heading
@@ -94,10 +94,10 @@ class PantherMix(PantherKinematics):
 
 
 def factory(kinematics_type=0):
-    if kinematics_type == 0 : return PantherClassic()
-    elif kinematics_type == 1: return PantherMecanum()
-    elif kinematics_type == 2: return PantherMix()
-    else : rospy.logerr("Unrecognized kinematics type, provide 0,1,2 as rosparam")
+    if kinematics_type == 0 : rospy.loginfo("initializing classic kinematics") ; return PantherClassic()
+    elif kinematics_type == 1: rospy.loginfo("initializing mecanum kinematics") ; return PantherMecanum()
+    elif kinematics_type == 2: rospy.loginfo("initializing mixed kinematics") ; return PantherMix()
+    else : rospy.logerr("Unrecognized kinematics type, provide 0,1,2 as rosparam [~wheel_type]")
 
 
 def euler_to_quaternion(yaw, pitch, roll):
@@ -248,7 +248,7 @@ def panther_driver():
                 robot_x_pos, robot_y_pos, robot_th_pos = RK.inverseKinematics(wheel_FL_ang_vel, wheel_FR_ang_vel, wheel_RL_ang_vel, wheel_RR_ang_vel, dt_)
             except:
                 rospy.loginfo("Couldn't get robot pose")
-            #rospy.loginfo("Robot pos: [x, y, th]: [%0.3f, %0.3f, %0.3f]" % (robot_x_pos, robot_y_pos, robot_th_pos))
+            # rospy.loginfo("Robot pos: [x, y, th]: [%0.3f, %0.3f, %0.3f]" % (robot_x_pos, robot_y_pos, robot_th_pos*180/3.14))
             RK.wheels_angular_velocity = [wheel_FL_ang_vel,wheel_FR_ang_vel,wheel_RR_ang_vel,wheel_RL_ang_vel]
             qx, qy, qz, qw = euler_to_quaternion(robot_th_pos,0,0)
             
