@@ -11,7 +11,6 @@ import tf2_ros
 
 class PantherKinematics():
     def __init__(self):
-        print("initializing panther driver")
         self.lin_x = 0
         self.lin_y = 0
         self.ang_z = 0
@@ -27,13 +26,17 @@ class PantherKinematics():
         self.robot_y_pos = 0
         self.robot_th_pos = 0
         self.power_factor = 0
+        self.scale_factor_x = 0.25
+        self.scale_factor_y = 0.25 
+        self.scale_factor_th = 0.125 
         self.cmd_vel_command_time = rospy.Time()
 
     def cmd_vel_callback(self,data):
         # forward kinematics
         self.cmd_vel_command_time = rospy.Time.now()
-        self.lin_x = data.linear.x # m/s
-        self.ang_z = data.angular.z # rad/s
+        self.lin_x = data.linear.x * self.scale_factor_x # m/s
+        self.lin_y = data.linear.y * self.scale_factor_y # m/s
+        self.ang_z = data.angular.z * self.scale_factor_th # rad/s
         self.forwardKinematics()
 
     def forwardKinematics(self, x_data, y_data, th_data):
@@ -45,7 +48,7 @@ class PantherKinematics():
         return 1 
 
     def _getMotorSpeed(self, wheel_front_right, wheel_front_left, wheel_rear_right, wheel_rear_left):
-
+        
         FR_enc_speed = self.power_factor * float(wheel_front_right) * float(self.encoder_resolution) / (2 * math.pi) # motor power / cmd cango
         FL_enc_speed = self.power_factor * float(wheel_front_left) * float(self.encoder_resolution) / (2 * math.pi) # motor power / cmd cango
         RR_enc_speed = self.power_factor * float(wheel_rear_right) * float(self.encoder_resolution) / (2 * math.pi) # motor power / cmd cango
