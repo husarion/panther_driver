@@ -5,6 +5,7 @@ Description=Launch Panther driver
 Type=simple
 ExecStart=/usr/bin/launch_driver.sh
 RemainAfterExit=yes
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

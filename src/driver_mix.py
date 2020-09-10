@@ -179,6 +179,11 @@ def panther_driver():
 
     while not rospy.is_shutdown():
         try:
+            rospy.get_master().getPid()
+        except:
+            rospy.logerr("Error getting master")
+            exit(1)
+        try:
             now = rospy.Time.now()
             dt_ = (now - last_time).to_sec()
             last_time = now
