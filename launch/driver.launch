@@ -1,15 +1,24 @@
 <launch>
+    <arg name="use_imu" default="false"/>
+    <arg name="use_lights" default="false"/>
 
     <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
         <param name="can_interface" type="string" value="panther_can"/>
-        <param name="wheel_type" type="string" value="mix"/> <!-- "classic" / "mecanum" / "mix" -->
+        <param name="wheel_type" type="string" value="classic"/>
+        <!-- "classic" / "mecanum" / "mix" -->
         <param name="odom_frame" type="string" value="odom"/>
         <param name="base_link_frame" type="string" value="base_link"/>
 
         <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
     </node>
 
+    <group if="$(arg use_lights)">
+        <node pkg="panther_lights" name="lights_node" type="lights_node"/>
+        <node pkg="panther_lights" name="lights_controller_simple" type="lights_controller_simple"/>
+    </group>
+    <group if="$(arg use_imu)">
+        <include file="$(find phidgets_spatial)/launch/spatial.launch"></include>
+        <node pkg="tf" type="static_transform_publisher" name="imu_publisher" args="0 0 0.02 0 0 0 base_link imu_link 100" />
+    </group>
 
-    <node pkg="panther_lights" name="lights_node" type="lights_node"/>
-    <node pkg="panther_lights" name="lights_controller_simple" type="lights_controller_simple"/>
 </launch>

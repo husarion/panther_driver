@@ -28,16 +28,17 @@ include_directories(
 #############
 
 catkin_install_python(PROGRAMS
-  src/driver
-  src/driver.py
-  src/driver_omni
-  src/driver_omni.py
+  src/ClassicKinematics.py
+  src/MixedKinematics.py
+  src/driver_node.py
+  src/MecanumKinematics.py 
+  src/PantherKinematics.py
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
 install(FILES
   launch/driver.launch
-  launch/driver_omni.launch
+  launch/rap.launch
   launch/webui.launch
   launch/joy_mecanum.launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
