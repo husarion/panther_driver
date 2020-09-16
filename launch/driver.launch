@@ -1,9 +1,15 @@
 <launch>
 
-    <node pkg="panther_driver" name="panther_driver" type="driver_mix.py" output="screen" required="true">
+    <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
         <param name="can_interface" type="string" value="panther_can"/>
-        <param name="wheel_type" type="string" value="classic"/> <!-- "classic" / "mecanum" / "mix" -->
+        <param name="wheel_type" type="string" value="mix"/> <!-- "classic" / "mecanum" / "mix" -->
+        <param name="odom_frame" type="string" value="odom"/>
+        <param name="base_link_frame" type="string" value="base_link"/>
+
         <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
     </node>
 
+
+    <node pkg="panther_lights" name="lights_node" type="lights_node"/>
+    <node pkg="panther_lights" name="lights_controller_simple" type="lights_controller_simple"/>
 </launch>
