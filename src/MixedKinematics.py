@@ -28,7 +28,7 @@ class PantherMix(PantherKinematics):
             wheel_front_right, wheel_front_left, wheel_rear_right, wheel_rear_left)
 
     def inverseKinematics(self, wheel_FL_ang_vel, wheel_FR_ang_vel, wheel_RL_ang_vel, wheel_RR_ang_vel, dt_):
-        # Mix (normal front, mecanum back)
+        # Mix (mecanum front, normal back)
         linear_velocity_x_ = (wheel_FL_ang_vel + wheel_FR_ang_vel +
                               wheel_RL_ang_vel + wheel_RR_ang_vel) * (self.wheel_radius/4)
         linear_velocity_y_ = 0.0

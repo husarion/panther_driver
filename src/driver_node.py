@@ -8,6 +8,7 @@ from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
+from nav_msgs.msg import Odometry
 import tf2_ros
 from PantherKinematics import PantherKinematics
 from ClassicKinematics import PantherClassic
@@ -49,6 +50,9 @@ def driverNode():
     kinematics_type = rospy.get_param('~wheel_type', "classic")
     odom_frame = rospy.get_param('~odom_frame', "odom")
     base_link_frame = rospy.get_param('~base_link_frame', "base_link")
+    publish_tf = rospy.get_param('~publish_tf', "true")
+    publish_odometry = rospy.get_param('~publish_odometry', "false")
+    publish_pose = rospy.get_param('~publish_pose', "true")
 
     RK = factory(kinematics_type)
     br = tf2_ros.TransformBroadcaster()
@@ -63,22 +67,27 @@ def driverNode():
     joint_state_msg.name = ['front_left',
                             'front_right', 'rear_left', 'rear_right']
 
-    pose_publisher = rospy.Publisher('pose', Pose, queue_size=1)
-    pose_msg = Pose()
-    pose_msg.position.x = 0
-    pose_msg.position.y = 0
-    pose_msg.position.z = 0
-    pose_msg.orientation.x = 0
-    pose_msg.orientation.y = 0
-    pose_msg.orientation.z = 0
-    pose_msg.orientation.w = 1
+    if publish_pose == "true":
+        pose_publisher = rospy.Publisher('pose', Pose, queue_size=1)
+        pose_msg = Pose()
+        pose_msg.position.x = 0
+        pose_msg.position.y = 0
+        pose_msg.position.z = 0
+        pose_msg.orientation.x = 0
+        pose_msg.orientation.y = 0
+        pose_msg.orientation.z = 0
+        pose_msg.orientation.w = 1
+
+    if publish_odometry == "true":
+        odom_publisher = rospy.Publisher('odom/wheel', Pose, queue_size=1)
+        odom_msg = Odometry()
 
     rospy.Subscriber("/cmd_vel", Twist, RK.cmdVelCallback, queue_size=1)
 
     can_interface = rospy.get_param('~can_interface', 'panther_can')
     RK.robot_width = rospy.get_param('~robot_width', 0.682)
     RK.robot_length = rospy.get_param('~robot_length', 0.44)
-    RK.wheel_radius = rospy.get_param('~wheel_radius', 0.1015)
+    RK.wheel_radius = rospy.get_param('~wheel_radius', 0.1825)
     RK.encoder_resolution = rospy.get_param('~encoder_resolution', 30*400*4)
     RK.power_factor = rospy.get_param('~power_factor', 0.04166667)
 
@@ -184,25 +193,43 @@ def driverNode():
                 wheel_FL_ang_vel, wheel_FR_ang_vel, wheel_RR_ang_vel, wheel_RL_ang_vel]
             qx, qy, qz, qw = eulerToQuaternion(robot_th_pos, 0, 0)
 
-            pose_msg.position.x = robot_x_pos
-            pose_msg.position.y = robot_y_pos
-            pose_msg.orientation.x = qx
-            pose_msg.orientation.y = qy
-            pose_msg.orientation.z = qz
-            pose_msg.orientation.w = qw
-            pose_publisher.publish(pose_msg)
+            if publish_pose == "true":
+                pose_msg.position.x = robot_x_pos
+                pose_msg.position.y = robot_y_pos
+                pose_msg.orientation.x = qx
+                pose_msg.orientation.y = qy
+                pose_msg.orientation.z = qz
+                pose_msg.orientation.w = qw
+                pose_publisher.publish(pose_msg)
 
-            tf.header.stamp = rospy.Time.now()
-            tf.header.frame_id = odom_frame
-            tf.child_frame_id = base_link_frame
-            tf.transform.translation.x = robot_x_pos
-            tf.transform.translation.y = robot_y_pos
-            tf.transform.translation.z = 0.0
-            tf.transform.rotation.x = qx
-            tf.transform.rotation.y = qy
-            tf.transform.rotation.z = qz
-            tf.transform.rotation.w = qw
-            br.sendTransform(tf)
+            if publish_tf == "true":
+                tf.header.stamp = rospy.Time.now()
+                tf.header.frame_id = odom_frame
+                tf.child_frame_id = base_link_frame
+                tf.transform.translation.x = robot_x_pos
+                tf.transform.translation.y = robot_y_pos
+                tf.transform.translation.z = 0.0
+                tf.transform.rotation.x = qx
+                tf.transform.rotation.y = qy
+                tf.transform.rotation.z = qz
+                tf.transform.rotation.w = qw
+                br.sendTransform(tf)
+
+            if publish_odometry == "true":
+                odom_msg.header.frame_id = odom_frame
+                odom_msg.header.stamp = now
+                odom_msg.pose.pose.position.x = robot_x_pos
+                odom_msg.pose.pose.position.y = robot_y_pos
+                odom_msg.pose.pose.orientation.x = qx
+                odom_msg.pose.pose.orientation.y = qy
+                odom_msg.pose.pose.orientation.z = qz
+                odom_msg.pose.pose.orientation.w = qw
+                odom_msg.twist.twist.linear.x = 0
+                odom_msg.twist.twist.linear.y = 0
+                odom_msg.twist.twist.linear.z = 0
+                odom_msg.twist.twist.angular.x = 0
+                odom_msg.twist.twist.angular.y = 0
+                odom_msg.twist.twist.angular.z = 0
 
         except:
             rospy.logerr("CAN protocol error")

@@ -8,7 +8,6 @@ from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
 import tf2_ros
 
-
 class PantherKinematics():
     def __init__(self):
         self.lin_x = 0
