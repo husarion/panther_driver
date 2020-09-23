@@ -22,32 +22,3 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
 )
-
-#############
-## Install ##
-#############
-
-catkin_install_python(PROGRAMS
-  src/ClassicKinematics.py
-  src/MixedKinematics.py
-  src/driver_node.py
-  src/MecanumKinematics.py 
-  src/PantherKinematics.py
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-
-install(FILES
-  launch/driver.launch
-  launch/rap.launch
-  launch/webui.launch
-  launch/joy_mecanum.launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
-)
-
-install(FILES
-  params/joystick.yaml
-  params/panther.yaml
-  params/joy_teleop.yaml
-  params/roboteq_motor_controllers_v60.eds
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/params
-)
