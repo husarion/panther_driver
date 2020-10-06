@@ -13,10 +13,7 @@ sudo pip install canopen
 
 ### Install 'can-utils' - driver for USB-CAN converter
 ```
-cd ~
-git clone https://github.com/vitroTV/can-utils.git
-cd can-utils
-make
+sudo apt install can-utils
 ```
 
 ### Install Husarion repositories
