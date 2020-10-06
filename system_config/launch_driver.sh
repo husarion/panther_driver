@@ -11,8 +11,6 @@ do
   sleep 1 
 done 
 
-roslaunch panther_driver &
-
 until ifconfig panther_can && rostopic list
 do
   sleep 1
