@@ -38,6 +38,21 @@ cd scripts
 sudo ./update_startup.sh
 ```
 
+### CAN bitrate
+Slcan tool take `-sX` argument to set CAN bitrate. Below table contains valid values.
+
+| ASCII Command | CAN Bitrate |
+| ---           | ---         |
+| s0            | 10 Kbit/s   |
+| s1            | 20 Kbit/s   |
+| s2            | 50 Kbit/s   |
+| s3            | 100 Kbit/s  |
+| s4            | 125 Kbit/s  |
+| s5            | 250 Kbit/s  |
+| s6            | 500 Kbit/s  |
+| s7            | 800 Kbit/s  |
+| s8            | 1000 Kbit/s |
+
 ### Kinematics type
 
 Panther can be configured with different wheels to match your needs, we provide 3 different kinematics types `classic`/`mecanum`/`mix` you can change type by selecting appropriate parameter in launch file - `wheel_type`. 
