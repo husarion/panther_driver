@@ -142,11 +142,20 @@ def driverNode():
 
             try:
                 front_controller.sdo['Cmd_CANGO'][2].raw = RK.FL_enc_speed
+            except:
+                rospy.logwarn("Error while writing to front left Cmd_CANGO")
+            try:
                 front_controller.sdo['Cmd_CANGO'][1].raw = RK.FR_enc_speed
+            except:
+                rospy.logwarn("Error while writing to front right Cmd_CANGO")
+            try:
                 rear_controller.sdo['Cmd_CANGO'][2].raw = RK.RL_enc_speed
+            except:
+                rospy.logwarn("Error while writing to rear left Cmd_CANGO")
+            try:
                 rear_controller.sdo['Cmd_CANGO'][1].raw = RK.RR_enc_speed
             except:
-                rospy.logwarn("Error while writing to Cmd_CANGO")
+                rospy.logwarn("Error while writing to rear right Cmd_CANGO")
 
             try:
                 battery_msg.voltage = float(
@@ -160,11 +169,20 @@ def driverNode():
             # inverse kinematics
             try:
                 position_FL = front_controller.sdo['Qry_ABCNTR'][2].raw
+            except:
+                rospy.logwarn("Error reading front left controller sdo")
+            try:
                 position_FR = front_controller.sdo['Qry_ABCNTR'][1].raw
+            except:
+                rospy.logwarn("Error reading front right controller sdo")
+            try:
                 position_RL = rear_controller.sdo['Qry_ABCNTR'][2].raw
+            except:
+                rospy.logwarn("Error reading rear left controller sdo")
+            try:  
                 position_RR = rear_controller.sdo['Qry_ABCNTR'][1].raw
             except:
-                rospy.logwarn("Error reading controller sdo")
+                rospy.logwarn("Error reading rear right controller sdo")
 
             # position_FL / RK.encoder_resolution - > full wheel rotations
             wheel_FL_ang_pos = 2 * math.pi * position_FL / RK.encoder_resolution  # radians

@@ -1,7 +1,7 @@
 <launch>
     <arg name="use_imu" default="false"/>
     <arg name="use_lights" default="true"/>
-    <arg name="kalman_params" default="true"/>
+    <arg name="kalman_params" default="false"/>
 
     <group if="$(arg kalman_params)">
         <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
@@ -42,8 +42,7 @@
     </group>
 
     <group if="$(arg use_lights)">
-        <node pkg="panther_lights" name="lights_node" type="lights_node"/>
-        <node pkg="panther_lights" name="lights_controller_simple" type="lights_controller_simple"/>
+        <include file="$(find panther_lights)/launch/panther_lights_simple.launch"></include>
     </group>
 
     <group if="$(arg use_imu)">
