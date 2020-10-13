@@ -90,7 +90,7 @@ After=syslog.target network.target multi-user.target nodm.service user@1000.serv
 [Service]
 Type=simple
 ExecStartPre=/bin/sleep 15
-ExecStart=/usr/bin/can_setup.sh
+ExecStart=/usr/sbin/can_setup.sh
 RemainAfterExit=yes
 
 [Install]
