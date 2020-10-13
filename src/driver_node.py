@@ -79,7 +79,7 @@ def driverNode():
         pose_msg.orientation.w = 1
 
     if publish_odometry == "true":
-        odom_publisher = rospy.Publisher('odom/wheel', Pose, queue_size=1)
+        odom_publisher = rospy.Publisher('odom/wheel', Odometry, queue_size=1)
         odom_msg = Odometry()
 
     rospy.Subscriber("/cmd_vel", Twist, RK.cmdVelCallback, queue_size=1)
@@ -248,6 +248,7 @@ def driverNode():
                 odom_msg.twist.twist.angular.x = 0
                 odom_msg.twist.twist.angular.y = 0
                 odom_msg.twist.twist.angular.z = 0
+                odom_publisher.publish(odom_msg)
 
         except:
             rospy.logerr("CAN protocol error")

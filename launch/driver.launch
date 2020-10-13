@@ -1,5 +1,5 @@
 <launch>
-    <arg name="use_imu" default="false"/>
+    <arg name="use_imu" default="true"/>
     <arg name="use_lights" default="true"/>
     <arg name="kalman_params" default="false"/>
 
@@ -8,20 +8,21 @@
             <param name="can_interface" type="string" value="panther_can"/>
             <param name="wheel_type" type="string" value="classic"/>
             <!-- "classic" / "mecanum" / "mix" -->
-            <param name="odom_frame" type="string" value="odom_wheel"/>
+            <param name="odom_frame" type="string" value="odom"/>
             <param name="base_link_frame" type="string" value="base_link"/>
             <param name="publish_tf" type="string" value="false"/>
-            <param name="publish_pose" type="string" value="true"/>
+            <param name="publish_pose" type="string" value="false"/>
             <param name="publish_odometry" type="string" value="true"/>
 
-            <param name="robot_width" type="double" value="0.682"/>
-            <param name="robot_length" type="double" value="0.44"/>
-            <param name="wheel_radius" type="double" value="0.1015"/>
+            <param name="robot_width" type="double" value="0.682"/> <!-- distance between center of wheels -->
+            <param name="robot_length" type="double" value="0.44"/> <!-- distance between axes-->
+            <param name="wheel_radius" type="double" value="0.1825"/> <!-- for mecanum 0.1015-->
         
             <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
         </node>
     </group>
-
+  
+<!-- Default params are placed here -->
     <group unless="$(arg kalman_params)">
         <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
             <param name="can_interface" type="string" value="panther_can"/>
@@ -33,20 +34,20 @@
             <param name="publish_pose" type="string" value="true"/>
             <param name="publish_odometry" type="string" value="false"/>
 
-            <param name="robot_width" type="double" value="0.682"/>
-            <param name="robot_length" type="double" value="0.44"/>
-            <param name="wheel_radius" type="double" value="0.1015"/>
+            <param name="robot_width" type="double" value="0.682"/> <!-- distance between center of wheels -->
+            <param name="robot_length" type="double" value="0.44"/> <!-- distance between axes-->
+            <param name="wheel_radius" type="double" value="0.1825"/> <!-- for mecanum 0.1015-->
         
             <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
         </node>
     </group>
 
     <group if="$(arg use_lights)">
-        <include file="$(find panther_lights)/launch/panther_lights_simple.launch"></include>
+        <include file="$(find panther_lights)/launch/panther_lights_controller.launch"></include>
     </group>
 
     <group if="$(arg use_imu)">
-        <include file="$(find phidgets_spatial)/launch/spatial.launch"></include>
+        <include file="$(find panther_driver)/launch/phidgets_imu.launch"></include>
     </group>
 
 </launch>
