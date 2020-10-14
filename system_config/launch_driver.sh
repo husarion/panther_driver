@@ -2,11 +2,11 @@
 
 eval "$(cat ~/.bashrc | tail -n +10)"
 source /opt/ros/noetic/setup.sh
-export ROS_IP=192.168.1.2
-export ROS_MASTER_URI=http://192.168.1.3:11311
+export ROS_IP=10.15.20.2
+export ROS_MASTER_URI=http://10.15.20.3:11311
 source /home/husarion/husarion_ws/devel/setup.sh
 
-until ntpdate -u 192.168.1.3
+until ntpdate -u 10.15.20.3
 do 
   sleep 1 
 done 

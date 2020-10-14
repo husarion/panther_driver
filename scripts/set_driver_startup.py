@@ -109,6 +109,7 @@ subprocess.Popen(
 #
 
 driver_script = """#!/bin/bash
+. /opt/ros/noetic/setup.sh 
 source ~/husarion_ws/devel/setup.bash
 source /etc/ros/env.sh
 export ROS_HOME=$(echo ~{hn})/.ros
