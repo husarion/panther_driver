@@ -3,23 +3,26 @@
     <arg name="use_lights" default="true"/>
     <arg name="webui_joy" default="true"/>
     <arg name="kalman_params" default="false"/>
+    <arg name="kinematics_type" default="classic"/>  <!-- "classic" / "mecanum" / "mix" -->
+    <arg name="wheel_radius" default="0.1825"/>
+  
 
     <group if="$(arg kalman_params)">
         <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
             <param name="can_interface" type="string" value="panther_can"/>
-            <param name="wheel_type" type="string" value="classic"/>
-            <!-- "classic" / "mecanum" / "mix" -->
+            <param name="wheel_type" type="string" value="$(arg kinematics_type)"/>
+            
             <param name="odom_frame" type="string" value="odom"/>
             <param name="base_link_frame" type="string" value="base_link"/>
-            <param name="publish_tf" type="string" value="false"/>
-            <param name="publish_pose" type="string" value="false"/>
-            <param name="publish_odometry" type="string" value="true"/>
+            <param name="publish_tf" type="bool" value="False"/>
+            <param name="publish_pose" type="bool" value="False"/>
+            <param name="publish_odometry" type="bool" value="True"/>
 
             <param name="robot_width" type="double" value="0.682"/>
             <!-- distance between center of wheels -->
             <param name="robot_length" type="double" value="0.44"/>
             <!-- distance between axes-->
-            <param name="wheel_radius" type="double" value="0.1825"/>
+            <param name="wheel_radius" type="double" value="$(arg wheel_radius)"/>
             <!-- for mecanum 0.1015-->
 
             <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
@@ -30,19 +33,18 @@
     <group unless="$(arg kalman_params)">
         <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
             <param name="can_interface" type="string" value="panther_can"/>
-            <param name="wheel_type" type="string" value="classic"/>
-            <!-- "classic" / "mecanum" / "mix" -->
+            <param name="wheel_type" type="string" value="$(arg kinematics_type)"/>
             <param name="odom_frame" type="string" value="odom"/>
             <param name="base_link_frame" type="string" value="base_link"/>
-            <param name="publish_tf" type="string" value="true"/>
-            <param name="publish_pose" type="string" value="true"/>
-            <param name="publish_odometry" type="string" value="false"/>
+            <param name="publish_tf" type="bool" value="true"/>
+            <param name="publish_pose" type="bool" value="true"/>
+            <param name="publish_odometry" type="bool" value="false"/>
 
             <param name="robot_width" type="double" value="0.682"/>
             <!-- distance between center of wheels -->
             <param name="robot_length" type="double" value="0.44"/>
             <!-- distance between axes-->
-            <param name="wheel_radius" type="double" value="0.1825"/>
+            <param name="wheel_radius" type="double" value="$(arg wheel_radius)"/>
             <!-- for mecanum 0.1015-->
 
             <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
@@ -51,7 +53,7 @@
 
     <group if="$(arg use_lights)">
         <include file="$(find panther_lights)/launch/panther_lights_controller.launch"></include>
-        <node pkg="rosservice" type="rosservice" name="initial_panther_lights" args="call --wait /set_panther_lights  7 ''" />
+        <node pkg="rosservice" type="rosservice" name="initial_panther_lights" args="call --wait /set_panther_lights  10 ''" />
     </group>
 
     <group if="$(arg use_imu)">

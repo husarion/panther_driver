@@ -18,6 +18,11 @@ Example for default panther configuration:
 
 Uninstall: 
     sudo python3 set_driver_startup.py uninstall
+
+WARNING: 
+    In case of using before script "update_startup.sh" make sure to execute following commands:
+    sudo systemctl disable launch_driver.service && sudo systemctl stop launch_driver.service
+    sudo systemctl disable can-setup.service && sudo systemctl stop can-setup.service
 """)
 
 
@@ -73,7 +78,7 @@ can_setup = """#!/bin/bash
 modprobe can
 modprobe can-raw
 modprobe slcan
-# cd /home/husarion/can-utils
+# cd /home/{hn}/can-utils
 echo "slcan_attach..."
 slcan_attach -o -s8 -n panther_can /dev/ttyACM0
 sleep 5
@@ -81,7 +86,7 @@ echo "slcand..."
 slcand -o -f -s8 -F /dev/ttyACM0 panther_can &
 sleep 5
 echo "ifconfig..."
-ifconfig panther_can up"""
+ifconfig panther_can up""".format(hn=HOSTNAME)
 
 can_service = """[Unit]
 Description=Enable CAN port for Panther robot
@@ -110,7 +115,7 @@ subprocess.Popen(
 
 driver_script = """#!/bin/bash
 . /opt/ros/noetic/setup.sh 
-source ~/husarion_ws/devel/setup.bash
+source /home/{hn}/husarion_ws/devel/setup.bash
 source /etc/ros/env.sh
 export ROS_HOME=$(echo ~{hn})/.ros
 

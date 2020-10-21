@@ -28,7 +28,7 @@ def factory(kinematics_type=0):
         return PantherMix()
     else:
         rospy.logerr(
-            "Unrecognized kinematics type, provide 0,1,2 as rosparam [~wheel_type]")
+            "Unrecognized kinematics type, provide classic, mecanum or mix as rosparam [~wheel_type]")
 
 
 def eulerToQuaternion(yaw, pitch, roll):
@@ -46,13 +46,13 @@ def eulerToQuaternion(yaw, pitch, roll):
 
 def driverNode():
 
-    rospy.init_node('~', anonymous=True)
+    rospy.init_node('~', anonymous=False)
     kinematics_type = rospy.get_param('~wheel_type', "classic")
     odom_frame = rospy.get_param('~odom_frame', "odom")
     base_link_frame = rospy.get_param('~base_link_frame', "base_link")
-    publish_tf = rospy.get_param('~publish_tf', "true")
-    publish_odometry = rospy.get_param('~publish_odometry', "false")
-    publish_pose = rospy.get_param('~publish_pose', "true")
+    publish_tf = rospy.get_param('~publish_tf', True)
+    publish_odometry = rospy.get_param('~publish_odometry', False)
+    publish_pose = rospy.get_param('~publish_pose', True)
 
     RK = factory(kinematics_type)
     br = tf2_ros.TransformBroadcaster()
@@ -67,7 +67,7 @@ def driverNode():
     joint_state_msg.name = ['front_left',
                             'front_right', 'rear_left', 'rear_right']
 
-    if publish_pose == "true":
+    if publish_pose == True:
         pose_publisher = rospy.Publisher('pose', Pose, queue_size=1)
         pose_msg = Pose()
         pose_msg.position.x = 0
@@ -78,7 +78,7 @@ def driverNode():
         pose_msg.orientation.z = 0
         pose_msg.orientation.w = 1
 
-    if publish_odometry == "true":
+    if publish_odometry == True:
         odom_publisher = rospy.Publisher('odom/wheel', Odometry, queue_size=1)
         odom_msg = Odometry()
 
@@ -211,7 +211,7 @@ def driverNode():
                 wheel_FL_ang_vel, wheel_FR_ang_vel, wheel_RR_ang_vel, wheel_RL_ang_vel]
             qx, qy, qz, qw = eulerToQuaternion(robot_th_pos, 0, 0)
 
-            if publish_pose == "true":
+            if publish_pose == True:
                 pose_msg.position.x = robot_x_pos
                 pose_msg.position.y = robot_y_pos
                 pose_msg.orientation.x = qx
@@ -220,7 +220,7 @@ def driverNode():
                 pose_msg.orientation.w = qw
                 pose_publisher.publish(pose_msg)
 
-            if publish_tf == "true":
+            if publish_tf == True:
                 tf.header.stamp = rospy.Time.now()
                 tf.header.frame_id = odom_frame
                 tf.child_frame_id = base_link_frame
@@ -233,7 +233,7 @@ def driverNode():
                 tf.transform.rotation.w = qw
                 br.sendTransform(tf)
 
-            if publish_odometry == "true":
+            if publish_odometry == True:
                 odom_msg.header.frame_id = odom_frame
                 odom_msg.header.stamp = now
                 odom_msg.pose.pose.position.x = robot_x_pos
