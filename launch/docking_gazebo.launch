@@ -1,0 +1,18 @@
+<launch>
+
+    <include file="$(find panther_gazebo)/launch/maze_world.launch">
+    </include>
+
+    <include file="$(find panther_description)/launch/panther_gazebo.launch">
+    </include>
+
+    <include file="$(find panther_driver)/launch/docking.launch">
+    </include>
+
+    <node pkg="tf" type="static_transform_publisher" name="power_station_tag" args="2.5 0 0.5 -1.5707 0 1.5707 odom power_station_tag 100" />
+    <node pkg="tf" type="static_transform_publisher" name="power_station" args="0 -0.29 0.265 0 0 0 power_station_tag power_station 100" />
+    <node pkg="tf" type="static_transform_publisher" name="power_receiver" args="0.53 0 0.15 0 0 0 base_link power_receiver 100" />
+
+    <node pkg="rviz" type="rviz" name="rviz" output="log"/>
+
+</launch>

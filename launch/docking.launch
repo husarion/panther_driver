@@ -1,0 +1,13 @@
+<launch>
+
+    <node pkg="panther_driver" type="docking_node" name="docking_node" clear_params="true" output="screen">
+        <param name="robot_frame" type="string" value="base_link"/>
+        <param name="power_receiver" type="string" value="power_receiver"/>
+        <param name="power_station" type="string" value="power_station"/>
+        <param name="max_angular_vel" type="double" value="0.01"/>
+        <param name="max_linear_vel" type="double" value="0.01"/>
+        <param name="heading_angle_threshold" type="double" value="0.01"/>
+        <param name="distance_threshold" type="double" value="0.025"/>
+    </node>
+
+</launch>
