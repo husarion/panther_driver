@@ -3,27 +3,28 @@
 import sys
 import subprocess
 import os
+import argparse
 
-possible_arg_count = [2, 4]
-if (len(sys.argv) not in possible_arg_count) or len(sys.argv) == 1:
-    sys.exit("""
-    ###Mismatch argument count. Expected 4.###
+parser = argparse.ArgumentParser(add_help=False)
+parser.add_argument('-u', '--uninstall', dest='argument_uninstall', type=bool,
+                    help="If uninstall", required=False, default=False)
+parser.add_argument('-rc', '--roscore', dest='argument_roscore', type=bool,
+                    help="Whether to install roscore autostart on host machine", default=False)
+parser.add_argument('-hm', '--hostname', dest='argument_hostname', type=str,
+                    help="Hostname", default="husarion")
+parser.add_argument('-ri', '--rosip', dest='argument_rosip', type=str,
+                    help="Local ip address", default="10.15.20.3")
+parser.add_argument('-rmu', '--rosmasteruri', dest='argument_rosmasteruri', type=str,
+                    help="Local ip address", default="10.15.20.2")
+parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                    help='Show this help message and exit. Example usage: sudo python3 set_driver_startup.py -rc True -hm husarion -ri 10.15.20.2 -rmu 10.15.20.2')
 
-This script set up autostart of panther driver node for controlling lights, wheels, imu
-USAGE: 
-    sudo python3 set_driver_startup.py <username> <local_ip_addr> <ros_master_ip/ros_master_hostname>
-    
-Example for default panther configuration: 
-    sudo python3 set_driver_startup.py husarion 10.15.20.2 10.15.20.3 
-
-Uninstall: 
-    sudo python3 set_driver_startup.py uninstall
-
-WARNING: 
-    In case of using before script "update_startup.sh" make sure to execute following commands:
-    sudo systemctl disable launch_driver.service && sudo systemctl stop launch_driver.service
-    sudo systemctl disable can-setup.service && sudo systemctl stop can-setup.service
-""")
+args = parser.parse_args()
+UNISTALL = args.argument_uninstall
+ROSCORE = args.argument_roscore
+HOSTNAME = args.argument_hostname
+ROS_IP = args.argument_rosip
+ROS_MASTER_URI = args.argument_rosmasteruri
 
 
 def prompt_sudo():
@@ -37,20 +38,18 @@ def prompt_sudo():
 if prompt_sudo() != 0:
     sys.exit("The user wasn't authenticated as a sudoer, exiting")
 
-if str(sys.argv[1]) == "uninstall":
+if UNISTALL:
     subprocess.call("rm /usr/sbin/can_setup.sh", shell=True)
     subprocess.call("rm /usr/sbin/driver_script.sh", shell=True)
     subprocess.call("rm /etc/ros/env.sh", shell=True)
     subprocess.call("rm /etc/systemd/system/can_setup.service", shell=True)
     subprocess.call(
         "rm /etc/systemd/system/panther_driver.service", shell=True)
+    subprocess.call("rm /etc/systemd/system/roscore.service", shell=True)
+    subprocess.call("systemctl disable roscore.service", shell=True)
     subprocess.call("systemctl disable can_setup.service", shell=True)
     subprocess.call("systemctl disable panther_driver.service", shell=True)
     sys.exit("All removed")
-
-HOSTNAME = str(sys.argv[1])
-ROS_IP = str(sys.argv[2])
-ROS_MASTER_URI = str(sys.argv[3])
 
 
 print("Configuration ->", "Hostname:", HOSTNAME, "ROS_IP:", ROS_IP,
@@ -130,14 +129,14 @@ do
 done
 sleep 5
 roslaunch panther_driver driver.launch
-""".format(hn=HOSTNAME,rmu=ROS_MASTER_URI)
+""".format(hn=HOSTNAME, rmu=ROS_MASTER_URI)
 
 subprocess.Popen(
     ['echo "{}" > /usr/sbin/driver_script.sh'.format(driver_script)],  shell=True)
 
 
 #
-# driver_service 
+# driver_service
 #
 
 driver_service = """
@@ -157,6 +156,30 @@ WantedBy=multi-user.target
 subprocess.Popen(
     ['echo "{}" > /etc/systemd/system/panther_driver.service'.format(driver_service)],  shell=True)
 
+if ROSCORE:
+    #
+    # /etc/systemd/system/roscore.service
+    #
+
+    startup = "/bin/bash -c '. /opt/ros/noetic/setup.sh; . /etc/ros/env.sh; while ! ping -c 1 -n -w 1 10.15.20.1 &> /dev/null; do sleep 1; done ;roscore & while ! echo exit | nc {rmu} 11311 > /dev/null; do sleep 1; done'".format(
+        rmu=ROS_MASTER_URI)
+
+    roscore_service = """[Unit]
+    After=NetworkManager.service time-sync.target
+    [Service]
+    TimeoutStartSec=60
+    Restart=always
+    RestartSec=0.5
+    Type=forking
+    User={hn}
+    ExecStart={ex}
+    [Install]
+    WantedBy=multi-user.target
+    """.format(hn=HOSTNAME, ex=startup)
+
+    subprocess.call("touch /etc/systemd/system/roscore.service", shell=True)
+    subprocess.Popen(
+        ['echo "{}" > /etc/systemd/system/roscore.service'.format(roscore_service)],  shell=True)
 
 
 #
@@ -191,7 +214,7 @@ GPIO.cleanup()
 subprocess.Popen(
     ['echo "{}" > /usr/sbin/soft_stop_script.py'.format(soft_stop_script)],  shell=True)
 #
-# soft_stop_service 
+# soft_stop_service
 #
 
 soft_stop_service = """
@@ -211,6 +234,8 @@ WantedBy=multi-user.target
 subprocess.Popen(
     ['echo "{}" > /etc/systemd/system/soft_stop_service.service'.format(soft_stop_service)],  shell=True)
 
+if ROSCORE:
+    subprocess.call("systemctl enable roscore.service", shell=True)
 subprocess.call("systemctl enable soft_stop_service.service", shell=True)
 subprocess.call("chmod +x /usr/sbin/soft_stop_script.py", shell=True)
 subprocess.call("systemctl enable can_setup.service", shell=True)
