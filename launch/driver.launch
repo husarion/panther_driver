@@ -5,7 +5,7 @@
     <arg name="kalman_params" default="false"/>
     <arg name="kinematics_type" default="classic"/>  <!-- "classic" / "mecanum" / "mix" -->
     <arg name="wheel_radius" default="0.1825"/>
-  
+    <arg name="joy" default="true"/>
 
     <group if="$(arg kalman_params)">
         <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
@@ -67,5 +67,9 @@
 
         <node pkg="webui-ros-joystick" type="node_server.sh" name="$(arg node_name)" output="screen" args=" --wait $(arg wait_nodes) --lin $(arg linear_scale) --ang $(arg angular_scale)"/>
     </group>
-
+    
+    <group if="$(arg joy)">
+        <include file="$(find logitech_f710_joy_ros)/launch/joy_teleop.launch"/>
+    </group>
+    
 </launch>
