@@ -1,2 +1,4 @@
 .vscode
 src/__pycache__/
+src/panther_driver/velocity_manager_node.cxx
+gtest/
