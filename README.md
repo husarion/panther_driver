@@ -195,6 +195,26 @@ You will see data structured as ROS message `sensor_msgs/JointState` with fields
 
 `effort = [Front left, Front right, Rear left, Rear right]` - Motor current in Amps
 
+## Velocity Manager
+
+It's node dealing with many sources of /cmd_vel. Subscribes to /cmd_vel and publishes at /cmd_vel_filtered. 
+
+State machine got 4 states `AcceptAllState, DeadManState, JoyState, AutonomousState` in this order. 
+
+To drive robot from joy hold `LB` (enable button) and left directional pad (D-pad). This will cause to going into JoyState.
+
+Timeout is set to 5s and moves from JoyState an AutonomusState to AcceptAllState.
+
+Going into DeadManState (To drive autonomously have to hold `LB + A`) is realized by pressing `X`. 
+
+`Y` is a button which enables to get back to AcceptAllState (default state).
+
+Schematic of state:
+
+![drive-schematic](asset/panther_controll.png)
+### Drive speed
+
+Control speed by pressing `RB` -> parking mode, and `RT` -> fast drive mode.
 # Used docs
 Documentation for USB-CAN converter:
 https://ucandevices.github.io/uccb.html#!#socketCAN

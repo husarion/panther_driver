@@ -66,10 +66,10 @@ private:
     float reset_vel_hz = {5}; //when no new data at this frequency then reset velocity
 
     // JOY buttons
-    int nr_enable_dm = {0};
-    int nr_disable_dm = {3};
-    int dm_hold_button = {1};
-    int reset_button = {2};
+    int nr_enable_dm = {0}; // X
+    int nr_disable_dm = {3}; // Y
+    int dm_hold_button = {1}; // A
+    int reset_button = {2}; // B
 
     volatile bool dm_pressed ={0}; // flag for detecting if dead man is pressed 
     CmdVelInfo currentVel{};
