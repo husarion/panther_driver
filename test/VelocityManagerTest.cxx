@@ -8,10 +8,12 @@ struct VelocityManagerTest : public ::testing::Test
 {
     using RobotStates = StateMachine<AcceptAllState, DeadManState, JoyState, AutonomousState>;
     RobotStates rs;
+    VelocityManager vm;
 
     virtual void SetUp() override
     {
         printf("setup!!!!!!!!!\n");
+        VelocityManager vm = VelocityManager();
     }
     virtual void TearDown()
     {
@@ -41,14 +43,14 @@ TEST_F(VelocityManagerTest, TestSMTransition)
     rs.handle(EnableDeadManEvent{});
     EXPECT_EQ(rs.getCStateIndex(), 1) << "Failed index don't match expected: 1 (DeadManState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
     rs.handle(DeadManEvent{});
-    EXPECT_EQ(rs.getCStateIndex(), 1) << "Failed index don't match expected: 2 (DeadManState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
+    EXPECT_EQ(rs.getCStateIndex(), 1) << "Failed index don't match expected: 1 (DeadManState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
     rs.handle(AutonomousEvent{});
-    EXPECT_EQ(rs.getCStateIndex(), 1) << "Failed index don't match expected: 2 (DeadManState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
+    EXPECT_EQ(rs.getCStateIndex(), 1) << "Failed index don't match expected: 1 (DeadManState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
     //check ignored events
     rs.handle(JoyCmdEvent{});
-    EXPECT_EQ(rs.getCStateIndex(), 1) << "Failed index don't match expected: 2 (DeadManState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
+    EXPECT_EQ(rs.getCStateIndex(), 1) << "Failed index don't match expected: 1 (DeadManState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
     rs.handle(TimeoutEvent{});
-    EXPECT_EQ(rs.getCStateIndex(), 1) << "Failed index don't match expected: 2 (DeadManState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
+    EXPECT_EQ(rs.getCStateIndex(), 1) << "Failed index don't match expected: 1 (DeadManState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
 
     //going back to accept all
     rs.handle(AcceptAllEvent{});
@@ -70,17 +72,22 @@ TEST_F(VelocityManagerTest, TestSMTransition)
     EXPECT_EQ(rs.getCStateIndex(), 3) << "Failed index don't match expected: 3 (AutonomousState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
     rs.handle(AutonomousEvent{});
     EXPECT_EQ(rs.getCStateIndex(), 3) << "Failed index don't match expected: 3 (AutonomousState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
-    
+
     //go back to accept all
     rs.handle(TimeoutEvent{});
     EXPECT_EQ(rs.getCStateIndex(), 0) << "Failed index don't match expected: 0 (AcceptAllState)  real value is: " << rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
-
 }
 
-// TEST_F(VelocityManagerTest, TestRetVal)
-// {
-//     EXPECT_EQ(typeid(std::string).name(), typeid(s.toString()).name());
-//     EXPECT_EQ(typeid(std::string).name(), typeid(a.toString()).name());
-//     EXPECT_EQ(typeid(std::string).name(), typeid(th.toString()).name());
-
-// }
+TEST_F(VelocityManagerTest, TestStateInfo)
+{
+    rs.handle(AcceptAllEvent{});
+    EXPECT_EQ(vm.getCurrentIndex(), 0) << "Failed index don't match expected: 0 (AcceptAllState)  real value is: " << vm.getCurrentIndex() << " " << rs.getCStateName().c_str() << "\n";
+    rs.handle(EnableDeadManEvent{});
+    EXPECT_EQ(vm.getCurrentIndex(), 1) << "Failed index don't match expected: 1 (DeadManState)  real value is: " << vm.getCurrentIndex()<< "rs index : "<< rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
+    
+    rs.handle(AcceptAllEvent{});
+    rs.handle(AutonomousEvent{});
+    EXPECT_EQ(vm.getCurrentIndex(), 3) << "Failed index don't match expected: 3 (AutonomousState)  real value is: " << vm.getCurrentIndex()<< "rs index : "<< rs.getCStateIndex() << " " << rs.getCStateName().c_str() << "\n";
+    // test accept all internal loops
+    rs.handle(AcceptAllEvent{});
+}

@@ -12,19 +12,22 @@ VelocityManager::~VelocityManager()
 
 CmdVelInfo VelocityManager::getVelocity()
 {
-    const int state = vm_sm.getCStateIndex();
+    int state = vm_sm.getCStateIndex();
     CmdVelInfo resp{};
     resp = currentVel;
     return resp;
 }
 
-const std::string VelocityManager::getCurrentDescription(){
-    const std::string state = vm_sm.getCStateName();
+std::string VelocityManager::getCurrentDescription()
+{
+    std::string state = vm_sm.getCStateName();
     return state;
 }
 
-const uint VelocityManager::getCurrentIndex(){
-    const uint state = vm_sm.getCStateIndex();
+uint VelocityManager::getCurrentIndex()
+{
+    uint state = vm_sm.getCStateIndex();
+    // std::cout << "State index: " << state << std::endl;
     return state;
 }
 
@@ -43,6 +46,7 @@ void VelocityManager::updateJoy(std::vector<int> j_buttons)
     {
         vm_sm.handle(DeadManEvent{});
     }
+    dm_pressed = j_buttons.at(dm_hold_button); // set state of dead man
 }
 
 void VelocityManager::updateCmdVel(CmdVelInfo cvi)
@@ -52,6 +56,7 @@ void VelocityManager::updateCmdVel(CmdVelInfo cvi)
     {
         vm_sm.handle(JoyCmdEvent{});
         const int state = vm_sm.getCStateIndex();
+        // std::cout << "State index: " << state << std::endl;
         if (state == 2)
         {
             currentVel = cvi;
@@ -69,10 +74,10 @@ void VelocityManager::updateCmdVel(CmdVelInfo cvi)
         {
             currentVel = cvi;
         }
-        // else 
-        // {
-        //     currentVel.reset();
-        // }
+        else
+        {
+            currentVel.reset();
+        }
     }
     else
     {
@@ -89,7 +94,7 @@ void VelocityManager::spin()
 {
     auto time_now = std::chrono::system_clock::now();
 
-    if (time_now - this->last_msg_time >= ((std::chrono::seconds{1})/reset_vel_hz))
+    if (time_now - this->last_msg_time >= ((std::chrono::seconds{1}) / reset_vel_hz))
     {
         //no timeout --> no change in status
         currentVel.reset(); //reset vel when no new messages
@@ -100,4 +105,4 @@ void VelocityManager::spin()
         vm_sm.handle(TimeoutEvent{});
         currentVel.reset(); //reset vel -> prevent const vel to be published
     }
-} 
+}

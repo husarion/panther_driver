@@ -1,4 +1,4 @@
-# build with catkin_make -DCATKIN_ENABLE_TESTING=1
+# build with catkin_make -DCATKIN_ENABLE_TESTING=1 -DCMAKE_BUILD_TYPE=Debug
 # run with rosrun panther_driver VelocityManagerTest
 
 
@@ -15,7 +15,7 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
 set(Sources
-    VelocityManagerTest.cxx
+    VelocityManagerTest.cxx ../src/panther_driver/VelocityManager.cxx
 )
 
 add_executable(${This} ${Sources})

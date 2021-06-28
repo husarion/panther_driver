@@ -1,3 +1,4 @@
+# build with <catkin_make -DCATKIN_ENABLE_TESTING=0 -DCMAKE_BUILD_TYPE=Release>
 cmake_minimum_required(VERSION 3.8)
 project(panther_driver)
 

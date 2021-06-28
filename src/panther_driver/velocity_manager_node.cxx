@@ -15,6 +15,7 @@ void joyCallback(const ros::MessageEvent<sensor_msgs::Joy const> &);
 VelocityManager vm = VelocityManager();
 
 bool sent_zeroes = 0; // joy publishes zeros all the time so to start timeout trigger - marker for last sent zeroes
+float joy_buttons_sum = 0.0;
 
 void publishStatus(uint, std::string, const ros::Publisher &, uint32_t);
 
@@ -66,10 +67,19 @@ void joyCallback(const ros::MessageEvent<sensor_msgs::Joy const> &event)
 
   const sensor_msgs::JoyConstPtr &msg = event.getMessage();
 
-  if ((publisher_name.find("joy_node") != std::string::npos) && !(publisher_name.find("f710_joy_node") != std::string::npos))
+  if ((publisher_name.find("f710_joy_node") != std::string::npos))
   {
     //other joy node than f710
-    vm.updateJoy(msg->buttons);
+    float sum_of_elems;
+    for (auto &n : msg->buttons)
+    {
+      sum_of_elems += n;
+    }
+    if ((sum_of_elems != joy_buttons_sum) && (sum_of_elems != 0.0))
+    {
+      vm.updateJoy(msg->buttons);
+      joy_buttons_sum = sum_of_elems;
+    }
   }
   else
   {

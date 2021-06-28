@@ -51,8 +51,8 @@ class VelocityManager
 public:
     VelocityManager();
     ~VelocityManager();
-    const std::string getCurrentDescription();
-    const uint getCurrentIndex();
+    std::string getCurrentDescription();
+    uint getCurrentIndex();
     void updateCmdVel(CmdVelInfo);
     void updateJoy(std::vector<int>);
     void spin();
@@ -65,13 +65,13 @@ private:
     int timeout_s = {5};
     float reset_vel_hz = {5}; //when no new data at this frequency then reset velocity
 
-    
+    // JOY buttons
     int nr_enable_dm = {0};
     int nr_disable_dm = {3};
     int dm_hold_button = {1};
     int reset_button = {2};
 
-    bool dm_pressed ={0};
+    volatile bool dm_pressed ={0}; // flag for detecting if dead man is pressed 
     CmdVelInfo currentVel{};
 };
 #endif

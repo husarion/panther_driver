@@ -10,6 +10,7 @@ struct DeadManState;
 struct JoyState;
 struct AutonomousState;
 constexpr bool VERBOSE = true;
+constexpr bool DEBUG = false;
 
 #define SHELL_ABORT_GOAL "\
 #/bin/bash \n\
@@ -28,7 +29,8 @@ public:
     template <typename Event>
     void handle(const Event &event)
     {
-        auto passEventToState = [this, &event](auto statePtr) {
+        auto passEventToState = [this, &event](auto statePtr)
+        {
             statePtr->handle(event).execute(*this);
         };
         std::visit(passEventToState, current_state);
@@ -44,13 +46,17 @@ public:
         // AcceptAllState, DeadManState, JoyState, AutonomousState <-- states
 
         const int c_state = current_state.index();
+        if (DEBUG)
+        {
+            std::cout << "c_state: " << c_state << std::endl;
+        }
         if (c_state == 0)
         {
             return "AcceptAllState";
         }
         else if (c_state == 1)
         {
-            return "AutonomousState";
+            return "DeadManState";
         }
         else if (c_state == 2)
         {
@@ -58,7 +64,7 @@ public:
         }
         else if (c_state == 3)
         {
-            return "DeadManState";
+            return "AutonomousState";
         }
         else
         {
