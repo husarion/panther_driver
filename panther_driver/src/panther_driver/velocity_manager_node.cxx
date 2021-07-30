@@ -6,7 +6,7 @@
 #include "vector"
 #include <numeric>
 
-#include "panther_driver/PantherDriverStatus.h"
+#include "husarion_msgs/PantherDriverStatus.h"
 
 // wrapper for fast change to new ros distro
 void cmdCallback(const ros::MessageEvent<geometry_msgs::Twist const> &);
@@ -28,7 +28,7 @@ int main(int argc, char **argv)
   ros::Subscriber sub_joy = n.subscribe("joy", 1, joyCallback);
 
   ros::Publisher pub_cmd_vel = n.advertise<geometry_msgs::Twist>("cmd_vel_filtered", 1);
-  ros::Publisher pub_status = n.advertise<panther_driver::PantherDriverStatus>("panther_driver/manager/status", 1);
+  ros::Publisher pub_status = n.advertise<husarion_msgs::PantherDriverStatus>("panther_driver/manager/status", 1);
 
   ros::Rate loop_rate(100);
   uint32_t counter = 0;
@@ -166,7 +166,7 @@ void cmdCallback(const ros::MessageEvent<geometry_msgs::Twist const> &event)
 
 void publishStatus(uint status_index, std::string status_description, const ros::Publisher &pub, uint32_t index = 0)
 {
-  auto msg = panther_driver::PantherDriverStatus();
+  auto msg = husarion_msgs::PantherDriverStatus();
   msg.header.seq = index;
   msg.header.frame_id = "-";
   msg.header.stamp = ros::Time::now();

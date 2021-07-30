@@ -3,7 +3,8 @@
   <name>panther_driver</name>
   <version>1.0.0</version>
   <description>The panther_driver package</description>
- <maintainer email="adam.krawczyk@husarion.com">Adam Krawczyk</maintainer>
+  <maintainer email="adam.krawczyk@husarion.com">Adam Krawczyk</maintainer>
+  <maintainer email="krzysztof.wojciechowski@husarion.com">Krzysztof Wojciechowski</maintainer>
 
   <license>MIT</license>
 
@@ -16,10 +17,12 @@
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
   <build_depend>message_generation</build_depend>
+  <build_depend>husarion_msgs</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>message_runtime</exec_depend>
+  <exec_depend>husarion_msgs</exec_depend>
   <export>
 
   </export>

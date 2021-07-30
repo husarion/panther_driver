@@ -1,0 +1,29 @@
+version: '3.4'
+
+services:
+  panther_driver:
+    build:
+      context: ./../../
+    container_name: panther_driver
+    depends_on:
+      - ros_master
+    environment:
+      - ROS_MASTER_URI=http://ros_master:11311
+    devices:
+      CAN CONTROLLER
+    command: roscore
+
+  webui-ros-joystick:
+    image: husarion/webui-ros-joystick:noetic-latest
+    container_name: webui-ros-joystick
+    ports:
+      - 8000
+    depends_on:
+      - ros_master
+    environment:
+      - ROS_MASTER_URI=http://ros_master:11311
+    command: rosrun panther_lights_scheduler lights_scheduler_node.py
+
+  ros_master:
+    image: ros:noetic-ros-core
+    command: roscore

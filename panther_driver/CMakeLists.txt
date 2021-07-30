@@ -10,22 +10,14 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   geometry_msgs
   message_generation
+  husarion_msgs
 )
 
-add_message_files(
-  FILES
-  PantherDriverStatus.msg
-)
-
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-)
 
 catkin_package(
 # INCLUDE_DIRS include
  LIBRARIES panther_driver
- CATKIN_DEPENDS roscpp rospy message_runtime
+ CATKIN_DEPENDS roscpp rospy message_runtime husarion_msgs
 # DEPENDS system_lib
 )
 
@@ -33,7 +25,6 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
 )
-
 
 set(Headers
   include/VelocityManager.hpp
