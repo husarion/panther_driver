@@ -8,7 +8,7 @@ SHELL ["/bin/bash", "-c"]
 
 # Update Ubuntu Software repository
 RUN apt update && \
-    apt install -y
+    apt upgrade -y
 
 RUN apt install -y git \
     python3-dev \
@@ -18,10 +18,11 @@ RUN apt install -y git \
 
 # Test dependencies
 RUN if [[ "$run_tests" == 'true' ]] ; then \
-        git clone -q --branch release-1.11.0 https://github.com/google/googletest.git /googletest && \
+        apt install -y cmake make g++ lcov gettext-base jq && \
+        git clone -q https://github.com/google/googletest.git /googletest && \
         mkdir -p /googletest/build && \
         cd /googletest/build && \
-        cmake .. && \
+        cmake -DBUILD_SHARED_LIBS=ON -Dgtest_build_samples=ON -G"Unix Makefiles" .. && \
         make && \
         make install && \
         cd / && \

@@ -18,12 +18,6 @@ CmdVelInfo VelocityManager::getVelocity()
     return resp;
 }
 
-std::string VelocityManager::getCurrentDescription()
-{
-    std::string state = vm_sm.getCStateName();
-    return state;
-}
-
 uint VelocityManager::getCurrentIndex()
 {
     uint state = vm_sm.getCStateIndex();
@@ -44,6 +38,7 @@ void VelocityManager::updateJoy(std::vector<int> j_buttons)
     }
     if (j_buttons.at(dm_hold_button))
     {
+        currentVel.reset();
         vm_sm.handle(DeadManEvent{});
     }
     dm_pressed = j_buttons.at(dm_hold_button); // set state of dead man

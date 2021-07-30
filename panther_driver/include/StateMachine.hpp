@@ -40,37 +40,6 @@ public:
         const int c_state = current_state.index();
         return c_state;
     }
-    std::string getCStateName()
-    {
-        // basically not usefoul rather for information
-        // AcceptAllState, DeadManState, JoyState, AutonomousState <-- states
-
-        const int c_state = current_state.index();
-        if (DEBUG)
-        {
-            std::cout << "c_state: " << c_state << std::endl;
-        }
-        if (c_state == 0)
-        {
-            return "AcceptAllState";
-        }
-        else if (c_state == 1)
-        {
-            return "DeadManState";
-        }
-        else if (c_state == 2)
-        {
-            return "JoyState";
-        }
-        else if (c_state == 3)
-        {
-            return "AutonomousState";
-        }
-        else
-        {
-            return "unrecognized state";
-        }
-    }
 
 private:
     // std::tuple public : StateMachine(/* args */);

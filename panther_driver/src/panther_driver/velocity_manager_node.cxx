@@ -17,7 +17,7 @@ VelocityManager vm = VelocityManager();
 bool sent_zeroes = 0; // joy publishes zeros all the time so to start timeout trigger - marker for last sent zeroes
 float joy_buttons_sum = 0.0;
 
-void publishStatus(uint, std::string, const ros::Publisher &, uint32_t);
+void publishStatus(uint, const ros::Publisher &, uint32_t);
 
 int main(int argc, char **argv)
 {
@@ -46,10 +46,9 @@ int main(int argc, char **argv)
 
     pub_cmd_vel.publish(msg);
     auto state_index = vm.getCurrentIndex();
-    auto state_description = vm.getCurrentDescription();
     if (counter % 10 == 0)
     {
-      publishStatus(state_index, state_description, pub_status, counter);
+      publishStatus(state_index, pub_status, counter);
     }
     ros::spinOnce();
     vm.spin();
@@ -164,8 +163,32 @@ void cmdCallback(const ros::MessageEvent<geometry_msgs::Twist const> &event)
   }
 }
 
-void publishStatus(uint status_index, std::string status_description, const ros::Publisher &pub, uint32_t index = 0)
+void publishStatus(uint status_index, const ros::Publisher &pub, uint32_t index = 0)
 {
+  std::string status_description;
+  switch (status_index)
+  {
+    case husarion_msgs::PantherDriverStatus::STATE_ACCEPT_ALL_STATE:
+    {
+      status_description = husarion_msgs::PantherDriverStatus::DESCRIPTION_ACCEPT_ALL_STATE;
+      break;
+    }
+    case husarion_msgs::PantherDriverStatus::STATE_DEAD_MAN_STATE:
+    {
+      status_description = husarion_msgs::PantherDriverStatus::STATE_ACCEPT_ALL_STATE;
+      break;
+    }
+    case husarion_msgs::PantherDriverStatus::STATE_JOY_STATE:
+    {
+      status_description = husarion_msgs::PantherDriverStatus::DESCRIPTION_JOY_STATE;
+      break;
+    }
+    case husarion_msgs::PantherDriverStatus::STATE_AUTONOMOUS_STATE:
+    {
+      status_description = husarion_msgs::PantherDriverStatus::DESCRIPTION_AUTONOMOUS_STATE;
+      break;
+    }
+  }
   auto msg = husarion_msgs::PantherDriverStatus();
   msg.header.seq = index;
   msg.header.frame_id = "-";
