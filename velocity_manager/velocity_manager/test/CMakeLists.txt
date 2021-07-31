@@ -12,10 +12,9 @@ add_compile_options(-std=c++17)
 include(Dart)
 
 find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
 
 set(Sources
-    VelocityManagerTest.cxx ../src/panther_driver/VelocityManager.cxx
+    VelocityManagerTest.cxx ../src/VelocityManager.cxx
 )
 
 add_executable(${This} ${Sources})

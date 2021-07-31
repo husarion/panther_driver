@@ -13,8 +13,7 @@ RUN apt update && \
 RUN apt install -y git \
     python3-dev \
     python3-pip \
-    python3-rospkg \
-    can-utils
+    python3-rospkg
 
 # Test dependencies
 RUN if [[ "$run_tests" == 'true' ]] ; then \
@@ -32,13 +31,11 @@ RUN if [[ "$run_tests" == 'true' ]] ; then \
 # Python 3 dependencies
 RUN pip3 install \
         rosdep \
-        rospkg \
-        canopen
+        rospkg
 
 # Create and initialise ROS workspace
 RUN mkdir -p /$ROS_WS/src
-COPY ./panther_driver /$ROS_WS/src/panther_driver
-RUN chmod +x /$ROS_WS/src/panther_driver/src/driver_node.py
+COPY ./velocity_manager /$ROS_WS/src/velocity_manager
 WORKDIR /$ROS_WS
 RUN git clone https://github.com/husarion/husarion_msgs.git --branch dev src/husarion_msgs && \
     mkdir build && \

@@ -1,24 +1,19 @@
-# build with <catkin_make -DCATKIN_ENABLE_TESTING=0 -DCMAKE_BUILD_TYPE=Release>
 cmake_minimum_required(VERSION 3.8)
-project(panther_driver)
+project(velocity_manager)
 
 add_compile_options(-std=c++17)
 find_package(catkin REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp 
-  rospy
+  roscpp
   geometry_msgs
-  message_generation
   husarion_msgs
 )
 
 
 catkin_package(
-# INCLUDE_DIRS include
- LIBRARIES panther_driver
+ LIBRARIES velocity_manager
  CATKIN_DEPENDS roscpp rospy message_runtime husarion_msgs
-# DEPENDS system_lib
 )
 
 include_directories(
@@ -32,8 +27,8 @@ set(Headers
 )
 
 set(Sources
-  src/panther_driver/velocity_manager_node.cxx 
-  src/panther_driver/VelocityManager.cxx
+  src/velocity_manager_node.cxx 
+  src/VelocityManager.cxx
 )
 
 add_executable(velocity_manager_node ${Sources} )
