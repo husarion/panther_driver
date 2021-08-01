@@ -62,9 +62,6 @@ jobs:
       with:
         ref: ${{ github.event.inputs.branch }}
 
-    - name: Unit test
-      run: docker build -t velocity-manager:test ./velocity_manager --build-arg run_tests=true
-
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v1
       

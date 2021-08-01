@@ -1,7 +1,5 @@
 FROM ros:noetic-ros-core
 
-ENV ROS_WS ros_ws
-
 # Use bash instead of sh
 SHELL ["/bin/bash", "-c"]
 
@@ -22,10 +20,10 @@ RUN pip3 install \
         canopen
 
 # Create and initialise ROS workspace
-RUN mkdir -p /$ROS_WS/src
-COPY ./panther_driver /$ROS_WS/src/panther_driver
-RUN chmod +x /$ROS_WS/src/panther_driver/src/driver_node.py
-WORKDIR /$ROS_WS
+RUN mkdir -p /ros_ws/src
+COPY ./panther_driver /ros_ws/src/panther_driver
+RUN chmod +x /ros_ws/src/panther_driver/src/driver_node.py
+WORKDIR /ros_ws
 RUN mkdir build && \
     source /opt/ros/$ROS_DISTRO/setup.bash && \
     rosdep init && \
