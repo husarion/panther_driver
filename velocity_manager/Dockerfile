@@ -28,7 +28,7 @@ RUN mkdir build
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && rosdep init
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && rosdep update
 # RUN source /opt/ros/$ROS_DISTRO/setup.bash && catkin_make
-RUN source /opt/ros/$ROS_DISTRO/setup.bash &&  catkin_make -DCATKIN_ENABLE_TESTING=1
+RUN source /opt/ros/$ROS_DISTRO/setup.bash &&  catkin_make
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && catkin_make run_tests
 
 # run tests
