@@ -28,8 +28,9 @@ RUN git clone https://github.com/husarion/husarion_msgs.git --branch dev src/hus
     source /opt/ros/$ROS_DISTRO/setup.bash && \
     rosdep init && \
     rosdep update && \
-    catkin_make -DCATKIN_ENABLE_TESTING=1 -DCMAKE_BUILD_TYPE=Debug && \
-    catkin_make run_tests
+    catkin_make
+    # catkin_make -DCATKIN_ENABLE_TESTING=1 -DCMAKE_BUILD_TYPE=Debug && \
+    # catkin_make run_tests
 
 # run tests
 RUN source /ros_ws/devel/setup.bash && \
