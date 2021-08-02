@@ -24,10 +24,12 @@ RUN mkdir -p /ros_ws/src
 COPY ./velocity_manager /ros_ws/src/velocity_manager
 WORKDIR /ros_ws
 RUN git clone https://github.com/husarion/husarion_msgs.git --branch dev src/husarion_msgs && \
-    ls src && \
     mkdir build && \
     source /opt/ros/$ROS_DISTRO/setup.bash && \
-    catkin_make -DCATKIN_ENABLE_TESTING=1 -DCMAKE_BUILD_TYPE=Debug && \
+    rosdep init && \
+    rosdep update && \
+    rosdep install --from-paths src --ignore-src -r -y && \
+    catkin_make install -DCATKIN_ENABLE_TESTING=1 -DCMAKE_BUILD_TYPE=Debug && \
     source /ros_ws/devel/setup.bash && \
     rosrun velocity_manager VelocityManagerTest
 
