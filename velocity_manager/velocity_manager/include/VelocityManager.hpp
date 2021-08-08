@@ -71,7 +71,7 @@ private:
     int dm_hold_button = {1}; // A
     int reset_button = {2}; // B
 
-    volatile bool dm_pressed = {0}; // flag for detecting if dead man is pressed 
+    volatile bool dm_pressed ={0}; // flag for detecting if dead man is pressed 
     CmdVelInfo currentVel{};
 };
 #endif

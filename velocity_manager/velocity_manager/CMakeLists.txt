@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.8)
 project(velocity_manager)
 
 add_compile_options(-std=c++17)
