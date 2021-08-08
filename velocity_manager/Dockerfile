@@ -21,13 +21,15 @@ RUN pip3 install \
 
 # Create and initialise ROS workspace
 RUN mkdir -p /ros_ws/src
-COPY ./velocity_manager /ros_ws/src/velocity_manager
 WORKDIR /ros_ws
 RUN git clone https://github.com/husarion/husarion_msgs.git --branch dev src/husarion_msgs && \
     mkdir build
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && rosdep init
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && rosdep update
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && rosdep install --from-paths src --ignore-src -r -y
+RUN source /opt/ros/$ROS_DISTRO/setup.bash && catkin_make
+
+COPY ./velocity_manager /ros_ws/src/velocity_manager
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && catkin_make
 RUN source /ros_ws/devel/setup.bash && rosrun velocity_manager VelocityManagerTest
 
