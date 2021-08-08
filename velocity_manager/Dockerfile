@@ -30,7 +30,7 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash && rosdep install --from-paths src --
 RUN source /opt/ros/$ROS_DISTRO/setup.bash && catkin_make
 
 COPY ./velocity_manager /ros_ws/src/velocity_manager
-RUN source /opt/ros/$ROS_DISTRO/setup.bash && catkin_make
+RUN source /opt/ros/$ROS_DISTRO/setup.bash && catkin_make --pkg velocity_manager
 RUN source /ros_ws/devel/setup.bash && rosrun velocity_manager VelocityManagerTest
 
 WORKDIR /
