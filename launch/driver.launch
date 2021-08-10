@@ -8,19 +8,19 @@
 
     <!-- wheel definition -->
     <param name="robot_length" type="float" value="0.44"/>
-    <group if="$(arg kalman_params) == offroad">
+    <group if="$(eval arg('wheel') == offroad)">
         <arg name="robot_width" type="float" value="0.697"/>
         <arg name="wheel_radius" type="float" value="0.1825"/>
         <arg name="kinematics_type" type="string" value="classic"/>
     </group>
 
-    <group if="$(arg kalman_params) == small_pneumatic">
+    <group if="$(eval arg('wheel') == small_pneumatic)">
         <arg name="robot_width" type="float" value="0.616"/>
         <arg name="wheel_radius" type="float" value="0.1015"/>
         <arg name="kinematics_type" type="string" value="classic"/>
     </group>
 
-    <group if="$(arg kalman_params) == mecanum">
+    <group if="$(eval arg('wheel') == mecanum)">
         <arg name="robot_width" type="float" value="0.6785"/>
         <arg name="wheel_radius" type="float" value="0.1015"/>
         <arg name="kinematics_type" type="string" value="mecanum"/>
