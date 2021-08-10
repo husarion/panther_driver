@@ -6,55 +6,35 @@
     <arg name="wheel" default="offroad"/>
     <arg name="joy" default="true"/>
 
+
     <!-- wheel definition -->
-    <param name="robot_length" type="float" value="0.44"/>
-    <group if="$(eval arg('wheel') == offroad)">
-        <arg name="robot_width" type="float" value="0.697"/>
-        <arg name="wheel_radius" type="float" value="0.1825"/>
-        <arg name="kinematics_type" type="string" value="classic"/>
+    <group if="$(eval wheel == 'offroad')">
+        <include file="$(find panther_driver)/launch/panther_driver.launch">
+            <arg name="robot_width" value="0.697"/>
+            <arg name="wheel_radius" value="0.1825"/>
+            <arg name="kinematics_type" value="classic"/>
+            <arg name="kalman_params" value="$(arg kalman_params)"/>
+        </include>
     </group>
 
-    <group if="$(eval arg('wheel') == small_pneumatic)">
-        <arg name="robot_width" type="float" value="0.616"/>
-        <arg name="wheel_radius" type="float" value="0.1015"/>
-        <arg name="kinematics_type" type="string" value="classic"/>
+    <group if="$(eval wheel == 'small_pneumatic')">
+        <include file="$(find panther_driver)/launch/panther_driver.launch">
+            <arg name="robot_width" value="0.616"/>
+            <arg name="wheel_radius" value="0.1015"/>
+            <arg name="kinematics_type" value="classic"/>
+            <arg name="kalman_params" value="$(arg kalman_params)"/>
+        </include>
     </group>
 
-    <group if="$(eval arg('wheel') == mecanum)">
-        <arg name="robot_width" type="float" value="0.6785"/>
-        <arg name="wheel_radius" type="float" value="0.1015"/>
-        <arg name="kinematics_type" type="string" value="mecanum"/>
+    <group if="$(eval wheel == 'mecanum')">
+        <include file="$(find panther_driver)/launch/panther_driver.launch">
+            <arg name="robot_width" value="0.6785"/>
+            <arg name="wheel_radius" value="0.1015"/>
+            <arg name="kinematics_type" value="mecanum"/>
+            <arg name="kalman_params" value="$(arg kalman_params)"/>
+        </include>
     </group>
-
-    <!-- kalman parameters -->
-    <group if="$(arg kalman_params)">
-        <arg name="publish_tf" type="bool" value="false"/>
-        <arg name="publish_pose" type="bool" value="false"/>
-        <arg name="publish_odometry" type="bool" value="true"/>
-    </group>
-
-    <group unless="$(arg kalman_params)">
-        <arg name="publish_tf" type="bool" value="true"/>
-        <arg name="publish_pose" type="bool" value="true"/>
-        <arg name="publish_odometry" type="bool" value="false"/>
-    </group>
-
-
-    <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
-        <param name="can_interface" type="string" value="panther_can"/>
-        <param name="wheel_type" type="string" value="$(arg kinematics_type)"/>
-        
-        <param name="odom_frame" type="string" value="odom"/>
-        <param name="base_link_frame" type="string" value="base_link"/>
-        <param name="publish_tf" type="bool" value="$(arg publish_tf)"/>
-        <param name="publish_pose" type="bool" value="$(arg publish_pose)"/>
-        <param name="publish_odometry" type="bool" value="$(arg publish_odometry)"/>
-
-        <param name="robot_width" type="double" value="$(arg robot_width)"/>
-        <param name="robot_length" type="double" value="$(arg robot_length)"/>
-        <param name="wheel_radius" type="double" value="$(arg wheel_radius)"/>
-        <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
-    </node>
+    
 
     <!-- optional nodes -->
     <group if="$(arg use_lights)">
