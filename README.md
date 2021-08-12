@@ -74,89 +74,30 @@ Slcan tool take `-sX` argument to set CAN bitrate. Below table contains valid va
 
 ### Parameters
 
-`~can_interface` (string, default: panther_can) 
+`~wheel_type` (string, default: offroad)
 
-    Specifies can interface used for controlling motors. Can be checked using "ip addr" command or "ifconfig".
+    Specifies wheel type. Wheel types: 'offroad' 'small_pneumatic' 'mecanum'. Automatically changes kinematics type.
 
-`~wheel_type` (string, default: classic)
+`~use_imu` (bool, default: true)
 
-    Specifies kinematics model used for calculating inverse and forward kinematics. Classic is 4 identical rubber or other wheels able to rotate around only one axis. Mecanum is for 4 identical mecanum wheels. Mix type means mecanum wheels at the front and classic at the back.
+    Enable/Disable IMU
 
-`~odom_frame` (string, default: odom)
+`~use_lights` (bool, default: true)
 
-    Specifies frame under which "/tf" or "/odometry" topic is published.
+    Enable/Disable light panels
 
-`~base_link_frame` (string, default: base_link)
+`~webui_joy` (bool, default: true)
 
-    Specifies base link frame name.
+    Enable/Disable webui joystick
 
-`~publish_tf` (bool, default: true)
+`~kalman_params` (bool, default: true)
 
-    Specifies whether to publish transform from odom_frame to base_link_frame. Provides X,Y and rotation. Z translation is always 0.
+    Enable/Disable kalman filter
 
-`~publish_pose` (bool, default: true)
+`~joy` (bool, default: true)
 
-    Specifies whether publish pose under topic "/pose".
-
-`~publish_odometry` (bool, default: false)
-
-    Specifies whether publish pose under topic "odom/wheel". Should be used with Kalman filter. 
-
-`~robot_width` (double, default: 0.682)
-
-    Value of axle width default value should change only if you replace roller or wheels that have different width. Provide distance from center of wheel to center of opposite wheel. Provided unit is meter [m].
-
-`~robot_length` (double, default: 0.44)
-
-    Distance between axles - should not be changed. Provided unit is meter [m].
-
-`~wheel_radius` (double, default: 0.1825)
-
-    Radius of a wheel. Provided unit is meter [m].
-
-`~eds_file` (string, default: " ")
-
-    Path to Electronic Data Sheet file, by default file is under "params/roboteq_motor_controllers_v60.eds" so default value used as rosparam is: 
+    Enable/Disable joystick
     
-    <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
-    
-
-### Kinematics type
-
-Panther can be configured with different wheels to match your needs, we provide 3 different kinematics types `classic`/`mecanum`/`mix` you can change type by selecting appropriate parameter in launch file - `wheel_type`. Mix type means mecanum wheels at the front and classic at the back.
-
-Default launch file is `launch/driver.launch` [repository](https://github.com/husarion/panther_driver/blob/main/launch/driver.launch) 
-
-
-Example launch file: 
-
-```xml
-<launch>
-    <arg name="kinematics_type" default="classic"/>  <!-- "classic" / "mecanum" / "mix" -->
-  
-    <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
-        <param name="can_interface" type="string" value="panther_can"/>
-        <param name="wheel_type" type="string" value="$(arg kinematics_type)"/>
-        
-        <param name="odom_frame" type="string" value="odom"/>
-        <param name="base_link_frame" type="string" value="base_link"/>
-        <param name="publish_tf" type="string" value="false"/>
-        <param name="publish_pose" type="string" value="false"/>
-        <param name="publish_odometry" type="string" value="true"/>
-
-        <param name="robot_width" type="double" value="0.682"/>
-        <!-- distance between center of wheels -->
-        <param name="robot_length" type="double" value="0.44"/>
-        <!-- distance between axes-->
-        <param name="wheel_radius" type="double" value="0.1825"/>
-        <!-- for mecanum 0.1015-->
-
-        <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
-    </node>
-
-</launch>
-```
-
 For kalman filter setup please refer to [panther_ekf](https://github.com/adamkrawczyk/panther_ekf)
 
 ## Setup autostart

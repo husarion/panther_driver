@@ -1,10 +1,10 @@
 <launch>
-    <arg name="use_imu" default="true"/>
-    <arg name="use_lights" default="true"/>
-    <arg name="webui_joy" default="true"/>
-    <arg name="kalman_params" default="false"/>
-    <arg name="wheel" default="offroad"/>
-    <arg name="joy" default="true"/>
+    <arg name="use_imu" default="true" doc="Enable/Disable IMU" />
+    <arg name="use_lights" default="true" doc="Enable/Disable light panels" />
+    <arg name="webui_joy" default="true" doc="Enable/Disable webui joystick" />
+    <arg name="kalman_params" default="false" doc="Enable/Disable kalman filter"/>
+    <arg name="wheel" default="offroad" doc="Type of wheel. Possible: 'offroad', 'small_pneumatic', 'mecanum'"/>
+    <arg name="joy" default="true" doc="Enable/Disable joystick" />
 
 
     <!-- wheel definition -->
