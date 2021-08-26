@@ -3,5 +3,7 @@ set -e
 
 # setup ros environment
 source "/ros_ws/devel/setup.bash"
-bash /ros_ws/src/panther_driver/scripts/update_startup.sh
+# slcan_attach -o -s8 /dev/ttyACM0
+# slcand -o -f -s8 -F /dev/ttyACM0
+# ifconfig panther_can up
 exec "$@"

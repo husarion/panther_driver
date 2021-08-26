@@ -11,13 +11,16 @@ RUN apt install -y git \
     python3-dev \
     python3-pip \
     python3-rospkg \
-    can-utils
+    can-utils \
+    python3-tf2-ros \
+    net-tools
 
 # Python 3 dependencies
 RUN pip3 install \
         rosdep \
         rospkg \
         canopen
+        
 
 # Create and initialise ROS workspace
 RUN mkdir -p /ros_ws/src
