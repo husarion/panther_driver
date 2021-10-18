@@ -1,54 +1,33 @@
 <launch>
-    <arg name="use_imu" default="true"/>
-    <arg name="use_lights" default="true"/>
-    <arg name="webui_joy" default="true"/>
-    <arg name="kalman_params" default="false"/>
-    <arg name="kinematics_type" default="classic"/>  <!-- "classic" / "mecanum" / "mix" -->
-    <arg name="wheel_radius" default="0.1825"/>
-    <arg name="joy" default="true"/>
+    <arg name="use_kalman" default="false" doc="Enable/Disable kalman filter"/>
+    <arg name="wheel" default="offroad" doc="Type of wheel. Possible: WH01, WH02, WH04. For more info reffer to manual"/>
 
-    <group if="$(arg kalman_params)">
-        <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
-            <param name="can_interface" type="string" value="panther_can"/>
-            <param name="wheel_type" type="string" value="$(arg kinematics_type)"/>
-            
-            <param name="odom_frame" type="string" value="odom"/>
-            <param name="base_link_frame" type="string" value="base_link"/>
-            <param name="publish_tf" type="bool" value="False"/>
-            <param name="publish_pose" type="bool" value="False"/>
-            <param name="publish_odometry" type="bool" value="True"/>
-
-            <param name="robot_width" type="double" value="0.682"/>
-            <!-- distance between center of wheels -->
-            <param name="robot_length" type="double" value="0.44"/>
-            <!-- distance between axes-->
-            <param name="wheel_radius" type="double" value="$(arg wheel_radius)"/>
-            <!-- for mecanum 0.1015-->
-
-            <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
-        </node>
+    <!-- wheel definition -->
+    <group if="$(eval wheel == 'WH01')">
+        <include file="$(find panther_driver)/launch/panther_driver.launch">
+            <arg name="robot_width" value="0.697"/>
+            <arg name="wheel_radius" value="0.1825"/>
+            <arg name="kinematics_type" value="classic"/>
+            <arg name="kalman_params" value="$(arg kalman_params)"/>
+        </include>
     </group>
 
-    <!-- Default params are placed here -->
-    <group unless="$(arg kalman_params)">
-        <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
-            <param name="can_interface" type="string" value="panther_can"/>
-            <param name="wheel_type" type="string" value="$(arg kinematics_type)"/>
-            <param name="odom_frame" type="string" value="odom"/>
-            <param name="base_link_frame" type="string" value="base_link"/>
-            <param name="publish_tf" type="bool" value="true"/>
-            <param name="publish_pose" type="bool" value="true"/>
-            <param name="publish_odometry" type="bool" value="false"/>
-
-            <param name="robot_width" type="double" value="0.682"/>
-            <!-- distance between center of wheels -->
-            <param name="robot_length" type="double" value="0.44"/>
-            <!-- distance between axes-->
-            <param name="wheel_radius" type="double" value="$(arg wheel_radius)"/>
-            <!-- for mecanum 0.1015-->
-
-            <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
-        </node>
+    <group if="$(eval wheel == 'WH04')">
+        <include file="$(find panther_driver)/launch/panther_driver.launch">
+            <arg name="robot_width" value="0.616"/>
+            <arg name="wheel_radius" value="0.1015"/>
+            <arg name="kinematics_type" value="classic"/>
+            <arg name="kalman_params" value="$(arg kalman_params)"/>
+        </include>
     </group>
-  
+
+    <group if="$(eval wheel == 'WH02')">
+        <include file="$(find panther_driver)/launch/panther_driver.launch">
+            <arg name="robot_width" value="0.6785"/>
+            <arg name="wheel_radius" value="0.1015"/>
+            <arg name="kinematics_type" value="mecanum"/>
+            <arg name="kalman_params" value="$(arg kalman_params)"/>
+        </include>
+    </group>
+    
 </launch>
