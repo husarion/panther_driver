@@ -5,9 +5,8 @@ SHELL ["/bin/bash", "-c"]
 
 # Update Ubuntu Software repository
 RUN apt update \
-    && apt upgrade -y
-
-RUN apt install -y git \
+    && apt upgrade -y \
+    && apt install -y git \
         python3-dev \
         python3-pip \
         python3-rospkg \
