@@ -39,4 +39,4 @@ RUN cd ros_ws \
 RUN apt clean \
     && rm -rf /var/lib/apt/lists/* 
 
-COPY ./ros_entrypoint.sh /
+COPY ./ros_entrypoint.sh / 
