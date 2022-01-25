@@ -2,6 +2,24 @@
 
 <launch>
 
+  #### IMU static transform publisher #######################################
+
+  <group if="$(env PANTHER_HAS_CONFIG)">
+    <node pkg="tf" type="static_transform_publisher" name="imu_base_link"
+      args="$(env PANTHER_IMU_LOCALIZATION_X) 
+      $(env PANTHER_IMU_LOCALIZATION_Y) 
+      $(env PANTHER_IMU_LOCALIZATION_Z) 
+      $(env PANTHER_IMU_ORIENTATION_R) 
+      $(env PANTHER_IMU_ORIENTATION_P) 
+      $(env PANTHER_IMU_ORIENTATION_Y)
+      base_link imu_base_link 100" 
+    />
+  </group>
+
+  <group unless="$(env PANTHER_HAS_CONFIG)">
+    <node pkg="tf" type="static_transform_publisher" name="imu_base_link_default" args="0.195 -0.01 0.085 0.0 3.14159 3.14159 base_link imu_base_link 100" />
+  </group>
+
   #### Nodelet manager ######################################################
 
   <node pkg="nodelet" type="nodelet" name="imu_manager"
@@ -21,8 +39,8 @@
     # optional param hub_port, used if connected to a VINT hub
     <!-- <param name="hub_port" value="0"/> -->
 
-    # optional param frame_id, default is "imu_link"
-    <!-- <param name="frame_id" value="imu_link"/> -->
+    # optional param frame_id, default is "imu_base_link"
+    <!-- <param name="frame_id" value="imu_base_link"/> -->
 
     # optional param linear_acceleration_stdev, default is 280ug
     <!-- <param name="linear_acceleration_stdev" value="0.002745862"/> -->
@@ -61,9 +79,10 @@
     args="load imu_filter_madgwick/ImuFilterNodelet imu_manager"
     output="screen">
 
-    <param name="use_mag" value="true"/>
-    <param name="use_magnetic_field_msg" value="true"/>
-    <param name="fixed_frame" value="base_link"/>
+    <param name="publish_tf" value="true" />
+    <param name="use_mag" value="false"/>
+    <param name="use_magnetic_field_msg" value="false"/>
+    <param name="fixed_frame" value="imu_base_link"/>
   </node>
 
 </launch>
