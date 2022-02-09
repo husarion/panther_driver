@@ -17,7 +17,7 @@
   </group>
 
   <group unless="$(env PANTHER_HAS_CONFIG)">
-    <node pkg="tf" type="static_transform_publisher" name="imu_base_link_default" args="0.195 -0.01 0.085 0.0 3.14159 3.14159 base_link imu_base_link 100" />
+    <node pkg="tf" type="static_transform_publisher" name="imu_base_link_default" args="0.168 0.028 0.083 3.14 0 0 base_link imu_base_link 100" />
   </group>
 
   #### Nodelet manager ######################################################
