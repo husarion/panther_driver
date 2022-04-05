@@ -2,8 +2,7 @@ version: '3.4'
 
 services:
   panther_driver:
-    build:
-      context: ./../../
+    build: ./
     container_name: panther_driver
     network_mode: host
     restart: on-failure
@@ -14,7 +13,7 @@ services:
     command: roslaunch panther_driver driver.launch
 
   velocity_manager:
-    image: husarion/velocity-manager:noetic-latest
+    build: ./velocity_manager
     container_name: velocity_manager
     network_mode: host
     restart: on-failure
