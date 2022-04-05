@@ -139,18 +139,21 @@ subprocess.Popen(
 # driver_service
 #
 
-driver_service = """
-[Unit]
+driver_service = """[Unit]
 Description=Launch Panther driver
 After=NetworkManager.service time-sync.target
+Wants=panther_eeprom_config.service
+
 [Service]
 Type=simple
+EnvironmentFile=/etc/systemd/system/panther.env
 ExecStart=/usr/sbin/driver_script.sh
 RemainAfterExit=yes
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
+
 """.format(hn=HOSTNAME)
 
 subprocess.Popen(

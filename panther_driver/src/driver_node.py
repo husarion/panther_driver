@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import math
 import rospy
@@ -82,7 +82,7 @@ def driverNode():
         odom_publisher = rospy.Publisher('odom/wheel', Odometry, queue_size=1)
         odom_msg = Odometry()
 
-    rospy.Subscriber("/cmd_vel_filtered", Twist, RK.cmdVelCallback, queue_size=1)
+    rospy.Subscriber("/cmd_vel", Twist, RK.cmdVelCallback, queue_size=1)
 
     can_interface = rospy.get_param('~can_interface', 'panther_can')
     RK.robot_width = rospy.get_param('~robot_width', 0.682)

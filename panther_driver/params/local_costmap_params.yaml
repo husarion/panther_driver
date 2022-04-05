@@ -1,0 +1,24 @@
+local_costmap:
+  update_frequency: 5
+  publish_frequency: 5
+  transform_tolerance: 0.25
+  static_map: false
+  rolling_window: true
+  width: 5
+  height: 5
+  origin_x: -2.5
+  origin_y: -2.5
+  resolution: 0.05
+  inflation_radius: 0.75
+
+  # These plugins are needed for AMCL to actually consume the global map and produce plans based on
+  # obstacles that are only seen in the a priori map
+  plugins:
+    # The StaticLayer plugin adds the a priori map to the costmap
+    - {name: static,                  type: "costmap_2d::StaticLayer"}
+    # The InflationLayer plugin computes the inflation around what was added by the StaticLayer
+    - {name: inflation,               type: "costmap_2d::InflationLayer"}
+    - {name: obstacles,        type: "costmap_2d::VoxelLayer"}
+  obstacles:
+    observation_sources: base_scan
+    base_scan: {data_type: LaserScan, sensor_frame: laser, clearing: true, marking: true, topic: /scan}

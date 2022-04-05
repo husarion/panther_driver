@@ -1,0 +1,12 @@
+<launch>
+
+    <include file="$(find webui-ros-joystick)/launch/webui.launch">
+        <arg name="linear_scale" value="1"/>
+        <arg name="angular_scale" value="1"/>
+        <arg name="wait_nodes" value="panther_driver"/>
+        <arg name="node_name" value="joystck_server"/>
+    </include>
+
+    <include file="$(find panther_driver)/launch/joy_mecanum.launch"/>
+
+</launch>
