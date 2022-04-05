@@ -39,3 +39,6 @@ RUN apt clean \
     && rm -rf /var/lib/apt/lists/* 
 
 COPY ./ros_entrypoint.sh / 
+RUN chmod +x /ros_entrypoint.sh
+ENTRYPOINT ["/ros_entrypoint.sh"]
+CMD ["bash"]
