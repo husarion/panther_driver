@@ -1,0 +1,31 @@
+services:
+  panther_driver:
+    build: ./../
+    container_name: panther_driver
+    network_mode: host
+    ipc: host
+    restart: on-failure
+    environment:
+      - ROS_IP=10.15.20.2
+      - ROS_MASTER_URI=http://10.15.20.2:11311
+    command: roslaunch panther_driver driver.launch --wait
+
+  ros_master:
+    image: ros:noetic-ros-core
+    network_mode: host
+    ipc: host
+    restart: on-failure
+    environment:
+      - ROS_IP=10.15.20.2
+    command: roscore
+
+  webui-ros-joystick:
+    image: husarion/webui-ros-joystick:noetic-latest
+    container_name: webui-ros-joystick
+    network_mode: host
+    ipc: host
+    restart: on-failure
+    environment:
+      - ROS_IP=10.15.20.2
+      - ROS_MASTER_URI=http://10.15.20.2:11311
+    command: roslaunch webui-ros-joystick webui.launch --wait
