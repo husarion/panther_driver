@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 import math
 import rospy
 from sensor_msgs.msg import BatteryState

@@ -6,38 +6,36 @@ services:
     container_name: panther_driver
     network_mode: host
     restart: on-failure
-    depends_on:
-      - ros_master
     environment:
       - ROS_MASTER_URI=http://127.0.0.1:11311
     command: roslaunch panther_driver driver.launch
 
-  velocity_manager:
-    build: ./velocity_manager
-    container_name: velocity_manager
-    network_mode: host
-    restart: on-failure
-    depends_on:
-      - ros_master
-    environment:
-      - ROS_MASTER_URI=http://127.0.0.1:11311
-    command: rosrun velocity_manager velocity_manager_node
+  # velocity_manager:
+  #   build: ./velocity_manager
+  #   container_name: velocity_manager
+  #   network_mode: host
+  #   restart: on-failure
+  #   depends_on:
+  #     - ros_master
+  #   environment:
+  #     - ROS_MASTER_URI=http://127.0.0.1:11311
+  #   command: rosrun velocity_manager velocity_manager_node
 
-  webui-ros-joystick:
-    image: husarion/webui-ros-joystick:noetic-latest
-    container_name: webui-ros-joystick
-    network_mode: host
-    restart: on-failure
-    depends_on:
-      - ros_master
-    environment:
-      - ROS_MASTER_URI=http://localhost:11311
-    command: roslaunch webui-ros-joystick webui.launch
+  # webui-ros-joystick:
+  #   image: husarion/webui-ros-joystick:noetic-latest
+  #   container_name: webui-ros-joystick
+  #   network_mode: host
+  #   restart: on-failure
+  #   depends_on:
+  #     - ros_master
+  #   environment:
+  #     - ROS_MASTER_URI=http://localhost:11311
+  #   command: roslaunch webui-ros-joystick webui.launch
 
-  ros_master:
-    image: ros:noetic-ros-core
-    network_mode: host
-    restart: on-failure
-    environment:
-      - ROS_MASTER_URI=http://localhost:11311
-    command: roscore
+  # ros_master:
+  #   image: ros:noetic-ros-core
+  #   network_mode: host
+  #   restart: on-failure
+  #   environment:
+  #     - ROS_MASTER_URI=http://localhost:11311
+  #   command: roscore
