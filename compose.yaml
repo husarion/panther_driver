@@ -5,9 +5,11 @@ services:
     build: ./
     container_name: panther_driver
     network_mode: host
+    ipc: host
     restart: on-failure
     environment:
-      - ROS_MASTER_URI=http://127.0.0.1:11311
+      - ROS_IP=10.15.20.2
+      - ROS_MASTER_URI=http://10.15.20.2:11311
     command: roslaunch panther_driver driver.launch
 
   # velocity_manager:
@@ -18,22 +20,53 @@ services:
   #   depends_on:
   #     - ros_master
   #   environment:
-  #     - ROS_MASTER_URI=http://127.0.0.1:11311
+  #     - ROS_MASTER_URI=http://10.15.20.2:11311
   #   command: rosrun velocity_manager velocity_manager_node
 
   webui-ros-joystick:
     image: husarion/webui-ros-joystick:noetic-latest
     container_name: webui-ros-joystick
     network_mode: host
+    ipc: host
     restart: on-failure
     environment:
-      - ROS_MASTER_URI=http://localhost:11311
+      - ROS_IP=10.15.20.2
+      - ROS_MASTER_URI=http://10.15.20.2:11311
     command: roslaunch webui-ros-joystick webui.launch
 
-  # ros_master:
-  #   image: ros:noetic-ros-core
+  ros_master:
+    image: ros:noetic-ros-core
+    network_mode: host
+    ipc: host
+    restart: on-failure
+    environment:
+      - ROS_IP=10.15.20.2
+    command: roscore
+
+  # panther_lights_controller:
+  #   build:
+  #     context: ./panther_lights/panther_lights_controller/platforms/panther_lights_controller_rpi_apa102
+  #   container_name: panther_lights_controller
+  #   privileged: true
   #   network_mode: host
-  #   restart: on-failure
   #   environment:
-  #     - ROS_MASTER_URI=http://localhost:11311
-  #   command: roscore
+  #     - ROS_IP=127.0.0.1
+  #     - ROS_MASTER_URI=http://127.0.0.1:11311
+  #   # devices:
+  #   #   - /dev/gpiomem
+  #   volumes:
+  #     - /dev/gpiomem:/dev/gpiomem
+  #     - /sys:/sys
+  #     - /config:/ros_ws/src/panther_lights_controller/config
+  #     - /animations:/ros_ws/src/panther_lights_controller/animations
+  #   command: rosrun panther_lights_controller controller_node.py
+
+  # panther_lights_scheduler:
+  #   build:
+  #     context: ./panther_lights/panther_lights_scheduler
+  #   container_name: panther_lights_scheduler
+  #   network_mode: host
+  #   environment:
+  #     - ROS_MASTER_URI=http://127.0.0.1:11311
+  #   command: rosrun panther_lights_scheduler lights_scheduler_node.py
+  
