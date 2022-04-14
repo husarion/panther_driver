@@ -1,0 +1,10 @@
+
+[Unit]
+Description=Start loading of env variables from eeprom
+Before=panther_driver.service
+
+[Service]
+ExecStart=/usr/local/sbin/load_env_on_boot.sh
+
+[Install]
+WantedBy=multi-user.target
