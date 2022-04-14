@@ -1,6 +1,6 @@
 services:
   panther_driver:
-    build: ./../
+    build: ./
     container_name: panther_driver
     network_mode: host
     ipc: host
@@ -32,7 +32,7 @@ services:
 
   panther_lights_controller:
     build:
-      context: ./../panther_lights/
+      context: ./panther_lights/
     container_name: panther_lights_controller
     privileged: true
     network_mode: host
