@@ -12,6 +12,7 @@ services:
 
   ros_master:
     image: ros:noetic-ros-core
+    container_name: ros_master
     network_mode: host
     ipc: host
     restart: always
