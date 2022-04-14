@@ -1,0 +1,12 @@
+[Unit]
+Description=Panther Powerboard script service
+After=NetworkManager.service time-sync.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/bin/panther_powerboard.py
+RemainAfterExit=yes
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
