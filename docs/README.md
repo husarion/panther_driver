@@ -32,7 +32,8 @@ Common roscore for all ros1 nodes on Panther sbc as well as main computer. Ip ad
  - [Dockerhub](https://hub.docker.com/_/ros)
 
 ### 6. panther_lights
-Implemetation of led usage for panther robot.
+***TODO: Actual functional usage of the leds*** 
+Implemetation of led usage for panther robot. For now its not usable, only turns on and blinks in one mode.
  - [Github](https://github.com/husarion/panther_lights)
  - Dockerhub ***TODO - not yet on dockerhub***
 
