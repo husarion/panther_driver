@@ -123,6 +123,9 @@ def driverNode():
     wheel_RR_ang_pos_last = 0.0
     last_time = rospy.Time.now()
 
+    # VARIABLE FOR ERROR TRACKING
+    err_count = 0
+
     while not rospy.is_shutdown():
         try:
             rospy.get_master().getPid()
@@ -252,6 +255,9 @@ def driverNode():
 
         except:
             rospy.logerr("CAN protocol error")
+            err_count+=1
+            if err_count == 10:
+                return
 
         rate.sleep()
 
