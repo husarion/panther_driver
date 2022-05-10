@@ -17,12 +17,12 @@ BAT1_voltage:
   unit: "V"
 
 # U13
-BAT1_temp: 
+BAT2_temp: 
   path: "/sys/bus/iio/devices/iio:device0/in_voltage0_raw"
   LSB: 0.002
   unit: "V"
 
-BAT2_temp: 
+BAT1_temp: 
   path: "/sys/bus/iio/devices/iio:device0/in_voltage1_raw"
   LSB: 0.002
   unit: "V"
