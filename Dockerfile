@@ -23,9 +23,7 @@ WORKDIR /app
 # Create and initialise ROS workspace
 RUN mkdir -p ros_ws/src
 COPY ./panther_driver ros_ws/src/panther_driver
-RUN chmod +x ros_ws/src/panther_driver/src/driver_node.py \
-    && chmod +x ros_ws/src/panther_driver/src/battery_node.py \
-    && git clone https://github.com/adamkrawczyk/panther_ekf.git --single-branch --branch=master ros_ws/src/panther_ekf
+RUN chmod +x ros_ws/src/panther_driver/src/driver_node.py
 
 RUN cd ros_ws \
     && mkdir build \
