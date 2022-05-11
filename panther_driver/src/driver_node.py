@@ -102,8 +102,8 @@ def voltage_to_deg(V_temp):
     R1 = 10000
     R0 = 10000
     R_therm = (V_temp * R1) / (U_supply - V_temp)
-    # TODO HANDLE when 
-    rospy.loginfo(f"U_meas={V_temp}, R_therm={R_therm}")
+    # TODO HANDLE when V_temp = 0 and V_temp = U_supply
+    # rospy.loginfo(f"U_meas={V_temp}, R_therm={R_therm}")
     return (A*B / (A*math.log(R_therm/R0)+B)) - 273.15
 
 def driverNode():
@@ -175,7 +175,7 @@ def driverNode():
         rospy.logerr("eds_file not defined, can not start CAN interface")
         return
 
-    loop_rate = 50
+    loop_rate = 20
     rate = rospy.Rate(loop_rate)
     rospy.loginfo("Start with creating a network representing one CAN bus")
     network = canopen.Network()
@@ -259,7 +259,6 @@ def driverNode():
             # Try Calculate and publish BAT data
             try: 
                 # Check battery num
-                rospy.loginfo("V_temp_bat2")
                 if V_temp_bat2 > 3.2: # ONE Battery
                     rospy.loginfo("One bat detected")
 
@@ -267,9 +266,11 @@ def driverNode():
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
 
                     Ibat1 =  -1 * ( Idriv1 + Idriv2 + Idig - Icharge_bat1)
-                    rospy.loginfo("Celculations DEBUG:")
-                    rospy.loginfo(f"Idig={Idig}")
-                    rospy.loginfo(f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}")
+
+                    rospy.loginfo(f"BATTERY LOG: Idig={Idig}," +
+                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}," +
+                        f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}")
+
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
                     publish_battery_msg(battery2_publisher, False)
                 else:
@@ -293,12 +294,11 @@ def driverNode():
                     Ibat1 = -1 * ( Idriv1 + (k * Idig) - Icharge_bat1)
                     Ibat2 = -1 * ( Idriv2 + ((1-k) * Idig) - Icharge_bat2 )
 
-                    rospy.loginfo("Celculations DEBUG:")
-                    rospy.loginfo(f"k={k}, Idig={Idig}")
-                    rospy.loginfo(f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}")
-                    rospy.loginfo(f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}")
-
-                    # Publish Battery Data
+                    rospy.loginfo(f"BATTERY LOG: k={k}, Idig={Idig}," +
+                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}," +
+                        f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}" +
+                        f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}" +
+                        f"V_bat2={V_bat2}, V_temp_bat2={V_temp_bat2}, temp_bat2={temp_bat2}, Ibat2={Ibat2}")
 
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
                     publish_battery_msg(battery2_publisher, True, V_bat2, temp_bat2, Ibat2)
