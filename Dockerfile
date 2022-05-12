@@ -10,7 +10,10 @@ RUN apt update \
         python3-dev \
         python3-pip \
         python3-rospkg \
-        python3-tf2-ros
+        python3-tf2-ros \
+        ros-noetic-imu-filter-madgwick \
+        ros-noetic-nodelet \
+        ros-noetic-phidgets-drivers
 
 # Python 3 dependencies
 RUN pip3 install \

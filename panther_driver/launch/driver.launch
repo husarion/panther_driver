@@ -30,4 +30,7 @@
             <arg name="kalman_params" value="$(arg kalman_params)"/>
         </include>
     </group>
+    
+    <include file="$(find panther_driver)/launch/imu.launch"/>
+
 </launch>
