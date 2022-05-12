@@ -1,7 +1,6 @@
 <launch>
-    <arg name="kalman_params" default="false" doc="Enable/Disable kalman filter"/>
+    <arg name="kalman_params" default="true" doc="Enable/Disable kalman filter"/>
     <arg name="wheel" default="offroad" doc="Type of wheel. Possible: 'offroad', 'small_pneumatic', 'mecanum'"/>
-
 
     <!-- wheel definition -->
     <group if="$(eval wheel == 'offroad')">
