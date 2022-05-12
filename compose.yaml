@@ -38,7 +38,7 @@ services:
     environment:
       - ROS_IP=10.15.20.2
       - ROS_MASTER_URI=http://10.15.20.2:11311
-    command: roslaunch webui-ros-joystick webui.launch --wait
+    command: roslaunch webui-ros-joystick webui.launch linear_scale:=1 angular_scale:=1 --wait
 
   panther_lights_controller:
     build:
