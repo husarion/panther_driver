@@ -101,8 +101,13 @@ def voltage_to_deg(V_temp):
     U_supply = 3.28
     R1 = 10000
     R0 = 10000
+
+    if  V_temp == 0 or V_temp >= U_supply:
+        print("Temperature measurement error")
+        return NaN
+
     R_therm = (V_temp * R1) / (U_supply - V_temp)
-    # TODO HANDLE when V_temp = 0 and V_temp = U_supply
+
     # rospy.loginfo(f"U_meas={V_temp}, R_therm={R_therm}")
     return (A*B / (A*math.log(R_therm/R0)+B)) - 273.15
 
@@ -267,8 +272,8 @@ def driverNode():
 
                     Ibat1 =  -1 * ( Idriv1 + Idriv2 + Idig - Icharge_bat1)
 
-                    rospy.loginfo(f"BATTERY LOG: Idig={Idig}," +
-                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}," +
+                    rospy.loginfo(f"BATTERY LOG: Idig={Idig}, " +
+                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
                         f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}")
 
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
@@ -294,10 +299,10 @@ def driverNode():
                     Ibat1 = -1 * ( Idriv1 + (k * Idig) - Icharge_bat1)
                     Ibat2 = -1 * ( Idriv2 + ((1-k) * Idig) - Icharge_bat2 )
 
-                    rospy.loginfo(f"BATTERY LOG: k={k}, Idig={Idig}," +
-                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}," +
-                        f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}" +
-                        f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}" +
+                    rospy.loginfo(f"BATTERY LOG: k={k}, Idig={Idig}, " +
+                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
+                        f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}, " +
+                        f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}, " +
                         f"V_bat2={V_bat2}, V_temp_bat2={V_temp_bat2}, temp_bat2={temp_bat2}, Ibat2={Ibat2}")
 
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
