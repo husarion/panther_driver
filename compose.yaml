@@ -10,9 +10,15 @@ services:
     environment:
       - ROS_IP=10.15.20.2
       - ROS_MASTER_URI=http://10.15.20.2:11311
+      - PANTHER_HAS_CONFIG
+      - PANTHER_IMU_LOCALIZATION_X
+      - PANTHER_IMU_LOCALIZATION_Y
+      - PANTHER_IMU_LOCALIZATION_Z
+      - PANTHER_IMU_ORIENTATION_R
+      - PANTHER_IMU_ORIENTATION_P
+      - PANTHER_IMU_ORIENTATION_Y
     privileged: true
     volumes:
-      - ./panther_driver:/app/ros_ws/src/panther_driver
       - /sys/bus/iio/devices:/sys/bus/iio/devices
     command: roslaunch panther_driver driver.launch --wait
 
