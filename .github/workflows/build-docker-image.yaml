@@ -48,6 +48,6 @@ jobs:
         file: ./Dockerfile
         platforms: linux/arm64, linux/amd64
         push: true
-        tags: husarion/panther-driver:noetic-latest
-        cache-from: type=registry,ref=husarion/panther-driver:noetic-latest
+        tags: husarion/panther-driver:latest
+        cache-from: type=registry,ref=husarion/panther-driver:latest
         cache-to: type=inline
