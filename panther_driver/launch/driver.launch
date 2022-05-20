@@ -32,4 +32,6 @@
     
     <include file="$(find panther_driver)/launch/imu.launch"/>
 
+    <!-- TF FOR LIDAR SENSOR -->
+    <node pkg="tf" type="static_transform_publisher" name="laser_link" args="0.39 0.0 0.19 3.14 0.0 0.0 base_link laser 100" />
 </launch>

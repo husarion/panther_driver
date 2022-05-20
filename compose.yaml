@@ -3,6 +3,7 @@ version: "2.3"
 services:
   panther_driver:
     image: husarion/panther-driver:latest
+    container_name: panther_driver
     network_mode: host
     ipc: host
     restart: always
