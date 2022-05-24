@@ -14,8 +14,7 @@ RUN apt update \
         ros-noetic-imu-filter-madgwick \
         ros-noetic-nodelet \
         ros-noetic-phidgets-drivers \
-        ros-noetic-tf \
-        ros-noetic-robot-localization
+        ros-noetic-tf
 
 # Python 3 dependencies
 RUN pip3 install \

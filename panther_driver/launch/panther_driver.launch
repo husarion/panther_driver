@@ -22,8 +22,6 @@
             <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds"/>
             <param name="measurements_file" type="string" value="$(find panther_driver)/params/measurements.yaml"/>
         </node>  
-
-        <include file="$(find panther_driver)/launch/ekf.launch"/>
     </group>
 
     <group unless="$(arg kalman_params)">
