@@ -1,0 +1,12 @@
+<!-- Based on https://github.com/adamkrawczyk/panther_ekf/blob/master/launch/panther_ekf.launch -->
+
+<launch>
+  <node pkg="robot_localization" type="ekf_localization_node" name="panther_ekf" clear_params="true">
+    <rosparam command="load" file="$(find panther_ekf)/params/ekf_params.yaml" />
+
+   <!--  Placeholder for output topic remapping -->
+    <!-- <remap from="odometry/filtered" to="odom"/> -->
+    <!-- <remap from="accel/filtered" to=""/> -->
+   
+  </node>
+</launch>

@@ -45,3 +45,17 @@ services:
       - ROS_IP=10.15.20.3
       - ROS_MASTER_URI=http://10.15.20.2:11311
     command: roslaunch --wait rplidar_ros rplidar.launch
+
+  # Panther ekf
+  panther_ekf:
+    build:
+      context: ./ekf_docker/
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    tty: true
+    environment:
+      - ROS_IP=10.15.20.3
+      - ROS_MASTER_URI=http://10.15.20.2:11311
+    command: roslaunch --wait panther_ekf ekf.launch
