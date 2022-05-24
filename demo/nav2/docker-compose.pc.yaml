@@ -14,7 +14,7 @@ services:
     ipc: host
     volumes: 
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      - ./rosbot_pro.rviz:/root/.rviz2/default.rviz
+      - ./panther.rviz:/root/.rviz2/default.rviz
     environment:
       - ROS_DOMAIN_ID=228
       - DISPLAY
