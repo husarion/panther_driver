@@ -4,7 +4,6 @@
 version: "2.3"
 
 services:
-
   # ROS Galactic
   nav2:
     image: husarion/nav2:galactic-latest
@@ -48,9 +47,7 @@ services:
 
   # Panther ekf
   panther_ekf:
-    build:
-      context: ./ekf_docker/
-      dockerfile: Dockerfile
+    image: husarion/robot-localization:latest
     restart: unless-stopped
     network_mode: host
     ipc: host
@@ -58,4 +55,4 @@ services:
     environment:
       - ROS_IP=10.15.20.3
       - ROS_MASTER_URI=http://10.15.20.2:11311
-    command: roslaunch --wait panther_ekf ekf.launch
+    command: roslaunch --wait localization_bringup panther_ekf.launch
