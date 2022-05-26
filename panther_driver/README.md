@@ -2,41 +2,44 @@
 
 Software for controlling Panther robot motors via CAN interface.
 
-## Installation
+## ROS API
 
-### Install Python canopen library:
-It is a Python library for CAN inetrfaace
+### Publish
+  - `/battery` *(sensor_msgs/BatteryState)*
+  - `/joint_states` *(sensor_msgs/JointState)*
+  - `/pose` *(geometry_msgs/Pose)*
+  - `/tf` *(tf2_msgs/TFMessage)*
+  - `/odom/wheel` *(nav_msgs/Odometry)* - default not active
 
-```
-sudo pip install canopen
-```
+For a `/joint_states` message is crying given data:
 
-### Install 'can-utils' - driver for USB-CAN converter
-```
-sudo apt install can-utils
-```
+- `position = [Front left, Front right, Rear left, Rear right]` - Encoder pulses
 
-### Install Husarion repositories
-We are using web ui with simple joystick to send velocity commands and custom driver to translate ROS messages to CAN frames.
-```
-cd ~/husarion_ws/src
-git clone https://github.com/husarion/webui-ros-joystick.git
-git clone https://github.com/hsrn24/panther_driver.git
-cd ~/husarion_ws
-catkin_make
-cd ~/husarion_ws/src/webui-ros-joystick/nodejs
-npm install rosnodejs express socket.io yargs
-```
+- `velocity = [Front left, Front right, Rear left, Rear right]` - Encoder pulses per second
 
-## Set system services
-This step is not mandatory, but will make easier robot up startup process.
+- `effort = [Front left, Front right, Rear left, Rear right]` - Motor current in Amps
 
-Use `update_startup.sh` to set required services:
 
-```
-cd scripts
-sudo ./update_startup.sh
-```
+### Subscribe
+- `/cmd_vel_filtered` *(geometry_msgs/Twist)*
+
+### Parameters
+
+- `~use_kalman` *(boolean, default: "false")* - Enables and disables kalman filter.
+
+- `~wheel_type` *(string, default: "WH01")* - specifies kinematics model used for calculating inverse and forward kinematics. Possible wheel types: WH01, WH02 and WH04. More about wheel types can be found in manual.
+
+
+### Kinematics type
+
+Panther can be configured with different wheels to match your needs, we provide 3 different kinematics types `classic`/`mecanum`/`mix` you can change type by selecting appropriate parameter in launch file - `wheel_type`. Mix type means mecanum wheels at the front and classic at the back.
+
+For kalman filter setup please refer to [panther_ekf](https://github.com/adamkrawczyk/panther_ekf)
+
+## CAN bus
+
+Documentation for USB-CAN converter:
+https://ucandevices.github.io/uccb.html#!#socketCAN
 
 ### CAN bitrate
 Slcan tool take `-sX` argument to set CAN bitrate. Below table contains valid values.
@@ -52,90 +55,3 @@ Slcan tool take `-sX` argument to set CAN bitrate. Below table contains valid va
 | s6            | 500 Kbit/s  |
 | s7            | 800 Kbit/s  |
 | s8            | 1000 Kbit/s |
-
-## ROS API
-
-### Published Topics
-
- * /battery [sensor_msgs/BatteryState]
-
- * /joint_states [sensor_msgs/JointState]
- 
- * /pose [geometry_msgs/Pose]
- 
- * /tf [tf2_msgs/TFMessage]
- 
- * /odom/wheel [nav_msgs/Odometry] - default not active
-
-
-### Subscribed Topics
-
-* /cmd_vel [geometry_msgs/Twist]
-
-### Parameters
-
-`~wheel_type` (string, default: offroad)
-
-    Specifies wheel type. Wheel types: 'offroad' 'small_pneumatic' 'mecanum'. Automatically changes kinematics type.
-
-`~use_imu` (bool, default: true)
-
-    Enable/Disable IMU
-
-`~use_lights` (bool, default: true)
-
-    Enable/Disable light panels
-
-`~webui_joy` (bool, default: true)
-
-    Enable/Disable webui joystick
-
-`~kalman_params` (bool, default: true)
-
-    Enable/Disable kalman filter
-
-`~joy` (bool, default: true)
-
-    Enable/Disable joystick
-    
-For kalman filter setup please refer to [panther_ekf](https://github.com/adamkrawczyk/panther_ekf)
-
-## Setup autostart
-
-# Fix set_driver_startup.py
-
-## Usage
-With both service added, driver and webui start with system boot.
-Open PANTHER_IP:8000 and you will be able to drive robot with use of joystick.
-
-
-## Viewing measurement data
-
-User can preview some of the sensor data using command line
-Connect with robot through SSH:
-
-```
-ssh husarion@PANTHER_IP
-```
-
-### Battery voltage
-```
-rostopic echo /battery
-```
-
-### Encoders, motor speed, motor current
-
-```
-rostopic echo /joint_states
-```
-You will see data structured as ROS message `sensor_msgs/JointState` with fields:
-
-`position = [Front left, Front right, Rear left, Rear right]` - Encoder pulses
-
-`velocity = [Front left, Front right, Rear left, Rear right]` - Encoder pulses per second
-
-`effort = [Front left, Front right, Rear left, Rear right]` - Motor current in Amps
-
-# Used docs
-Documentation for USB-CAN converter:
-https://ucandevices.github.io/uccb.html#!#socketCAN
