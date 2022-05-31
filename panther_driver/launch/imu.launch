@@ -12,7 +12,7 @@
       $(env PANTHER_IMU_ORIENTATION_R) 
       $(env PANTHER_IMU_ORIENTATION_P) 
       $(env PANTHER_IMU_ORIENTATION_Y)
-      base_link imu_base_link 100" 
+      base_link imu_link 100" 
     />
   </group>
 
