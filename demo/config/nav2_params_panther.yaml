@@ -56,8 +56,9 @@ controller_server:
     # Goal checker parameters
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
+      # Smaller agle looks beeter 
       xy_goal_tolerance: 0.35
-      yaw_goal_tolerance: 0.75
+      yaw_goal_tolerance: 0.2
       stateful: True
     # DWB parameters
     # FollowPath:
@@ -105,14 +106,14 @@ controller_server:
 
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-      desired_linear_vel: 2.0
-      max_linear_accel: 2.5
-      max_linear_decel: 2.5
+      desired_linear_vel: 5.0
+      max_linear_accel: 7.5
+      max_linear_decel: 7.5
       lookahead_dist: 0.65
       min_lookahead_dist: 0.3
-      max_lookahead_dist: 0.9
+      max_lookahead_dist: 1.9
       lookahead_time: 1.0
-      rotate_to_heading_angular_vel: 1.5
+      rotate_to_heading_angular_vel: 2.5
       transform_tolerance: 0.1
       use_velocity_scaled_lookahead_dist: false
       min_approach_linear_velocity: 0.05
@@ -121,11 +122,11 @@ controller_server:
       use_regulated_linear_velocity_scaling: true
       use_cost_regulated_linear_velocity_scaling: false
       regulated_linear_scaling_min_radius: 0.9
-      regulated_linear_scaling_min_speed: 0.2
+      regulated_linear_scaling_min_speed: 0.5
       use_rotate_to_heading: true
       allow_reversing: false
       rotate_to_heading_min_angle: 0.785
-      max_angular_accel: 3.2
+      max_angular_accel: 5.0
 
 
 controller_server_rclcpp_node:
@@ -254,9 +255,10 @@ recoveries_server:
     transform_timeout: 0.1
     use_sim_time: False
     simulate_ahead_time: 2.0
-    max_rotational_vel: 1.0
-    min_rotational_vel: 0.4
-    rotational_acc_lim: 3.2
+    # Changed because robot was rotating too quickly
+    max_rotational_vel: 0.4
+    min_rotational_vel: 0.2
+    rotational_acc_lim: 1.5
 
 waypoint_follower:
   ros__parameters:

@@ -29,20 +29,19 @@ services:
       - ROS_DOMAIN_ID=228
     command: ros2 run ros1_bridge dynamic_bridge
  
-  # ROS Melodic Rplidar
-  rplidar:
-    image: husarion/rplidar:latest
+  # ROS Galactic Rplidar
+  rplidar_test:
+    image: husarion/rplidar:galactic
     restart: unless-stopped
     network_mode: host
     ipc: host
     tty: true
+    environment:
+      - ROS_DOMAIN_ID=228
     devices:
       - /dev/ttyUSB0
-    environment:
-      - ROS_IP=10.15.20.3
-      - ROS_MASTER_URI=http://10.15.20.2:11311
-    command: roslaunch --wait rplidar_ros rplidar_s1.launch
-
+    command: ros2 launch rplidar_ros2 rplidar_s1_launch.py inverted:=true
+  
   # Panther ekf
   panther_ekf:
     image: husarion/robot-localization:latest
@@ -50,8 +49,6 @@ services:
     network_mode: host
     ipc: host
     tty: true
-    volumes:
-      - ./config/panther_ekf_params.yaml:/app/ros_ws/src/localization_bringup/params/panther_ekf_params.yaml
     environment:
       - ROS_IP=10.15.20.3
       - ROS_MASTER_URI=http://10.15.20.2:11311
