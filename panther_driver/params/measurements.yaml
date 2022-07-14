@@ -1,0 +1,38 @@
+
+# U12
+
+BAT2_voltage: 
+  path: "/sys/bus/iio/devices/iio:device1/in_voltage0_raw"
+  LSB: 0.02504255
+  unit: "V"
+
+IDIG_current: 
+  path: "/sys/bus/iio/devices/iio:device1/in_voltage1_raw"
+  LSB: 0.008
+  unit: "V"
+
+BAT1_voltage: 
+  path: "/sys/bus/iio/devices/iio:device1/in_voltage2_raw"
+  LSB: 0.02504255
+  unit: "V"
+
+# U13
+BAT2_temp: 
+  path: "/sys/bus/iio/devices/iio:device0/in_voltage0_raw"
+  LSB: 0.002
+  unit: "V"
+
+BAT1_temp: 
+  path: "/sys/bus/iio/devices/iio:device0/in_voltage1_raw"
+  LSB: 0.002
+  unit: "V"
+
+BAT2_charge_current: 
+  path: "/sys/bus/iio/devices/iio:device0/in_voltage2_raw"
+  LSB: 0.004
+  unit: "A"
+
+BAT1_charge_current: 
+  path: "/sys/bus/iio/devices/iio:device0/in_voltage3_raw"
+  LSB: 0.004
+  unit: "A"

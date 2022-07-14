@@ -1,0 +1,58 @@
+# Quick Start
+# $ docker compose -f compose.yaml up
+
+version: "2.3"
+
+services:
+  # ROS Galactic
+  nav2:
+    image: husarion/nav2:galactic-latest
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    environment:
+      - ROS_DOMAIN_ID=228
+    volumes:
+      - ./config/nav2_params_panther.yaml:/app/ros2_ws/src/husarion_nav2/config/nav2_params.yaml
+      - ./config/slam_toolbox_panther.yaml:/app/ros2_ws/src/husarion_nav2/config/slam_toolbox.yaml
+    command: ros2 launch husarion_nav2 bringup_both.launch.py
+
+  # ROS Noetic + ROS 2 Galactic
+  bridge:
+    image: ros:galactic-ros1-bridge
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    environment:
+      - ROS_IP=10.15.20.3
+      - ROS_MASTER_URI=http://10.15.20.2:11311
+      - ROS_DOMAIN_ID=228
+    command: ros2 run ros1_bridge dynamic_bridge
+ 
+  # ROS Melodic Rplidar
+  rplidar:
+    image: husarion/rplidar:latest
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    tty: true
+    devices:
+      - /dev/ttyUSB0
+    environment:
+      - ROS_IP=10.15.20.3
+      - ROS_MASTER_URI=http://10.15.20.2:11311
+    command: roslaunch --wait rplidar_ros rplidar_s1.launch
+
+  # Panther ekf
+  panther_ekf:
+    image: husarion/robot-localization:latest
+    restart: unless-stopped
+    network_mode: host
+    ipc: host
+    tty: true
+    volumes:
+      - ./config/panther_ekf_params.yaml:/app/ros_ws/src/localization_bringup/params/panther_ekf_params.yaml
+    environment:
+      - ROS_IP=10.15.20.3
+      - ROS_MASTER_URI=http://10.15.20.2:11311
+    command: roslaunch --wait localization_bringup panther_ekf.launch

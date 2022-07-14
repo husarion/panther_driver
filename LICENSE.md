@@ -1,5 +1,3 @@
-
-
 MIT License
 
 Copyright (c) 2020 Husarion Sp. z o.o.
