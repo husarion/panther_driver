@@ -342,10 +342,10 @@ def driverNode():
             wheel_RR_ang_pos = 2 * math.pi * position_RR / RK.encoder_resolution
 
             wheel_FL_ang_vel = (wheel_FL_ang_pos -
-                                wheel_FL_ang_pos_last) * dt_  # rad/s
-            wheel_FR_ang_vel = (wheel_FR_ang_pos - wheel_FR_ang_pos_last) * dt_
-            wheel_RL_ang_vel = (wheel_RL_ang_pos - wheel_RL_ang_pos_last) * dt_
-            wheel_RR_ang_vel = (wheel_RR_ang_pos - wheel_RR_ang_pos_last) * dt_
+                                wheel_FL_ang_pos_last) / dt_  # rad/s
+            wheel_FR_ang_vel = (wheel_FR_ang_pos - wheel_FR_ang_pos_last) / dt_
+            wheel_RL_ang_vel = (wheel_RL_ang_pos - wheel_RL_ang_pos_last) / dt_
+            wheel_RR_ang_vel = (wheel_RR_ang_pos - wheel_RR_ang_pos_last) / dt_
 
             wheel_FL_ang_pos_last = wheel_FL_ang_pos
             wheel_FR_ang_pos_last = wheel_FR_ang_pos
