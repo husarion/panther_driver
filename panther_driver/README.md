@@ -9,7 +9,7 @@ Software for controlling Panther robot motors via CAN interface.
   - `/joint_states` *(sensor_msgs/JointState)*
   - `/pose` *(geometry_msgs/Pose)*
   - `/tf` *(tf2_msgs/TFMessage)*
-  - `/odom/wheel` *(nav_msgs/Odometry)* - default not active
+  - `/odom/wheel` *(nav_msgs/Odometry)*
 
 For a `/joint_states` message is crying given data:
 
@@ -17,11 +17,11 @@ For a `/joint_states` message is crying given data:
 
 - `velocity = [Front left, Front right, Rear left, Rear right]` - Encoder pulses per second
 
-- `effort = [Front left, Front right, Rear left, Rear right]` - Motor current in Amps
+- `effort = [Front left, Front right, Rear left, Rear right]` - Approximate motor current in Nm
 
 
 ### Subscribe
-- `/cmd_vel_filtered` *(geometry_msgs/Twist)*
+- `/cmd_vel` *(geometry_msgs/Twist)*
 
 ### Parameters
 
