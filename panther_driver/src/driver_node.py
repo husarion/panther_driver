@@ -2,21 +2,23 @@
 
 import math
 
-from numpy import NaN
-import rospy
+import yaml
 import canopen
+from numpy import NaN
+
+import rospy
+import tf2_ros
+
 from sensor_msgs.msg import BatteryState
 from sensor_msgs.msg import JointState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
-import tf2_ros
-from PantherKinematics import PantherKinematics
+
 from ClassicKinematics import PantherClassic
 from MecanumKinematics import PantherMecanum
 from MixedKinematics import PantherMix
-import yaml
 
 
 def sign(x):
@@ -120,7 +122,7 @@ def driverNode():
     kinematics_type = rospy.get_param('~wheel_type', "classic")
     odom_frame = rospy.get_param('~odom_frame', "odom")
     base_link_frame = rospy.get_param('~base_link_frame', "base_link")
-    motor_torque_constant = rospy.get_param('~motor_torque_constant', 2.614927686)
+    motor_torque_constant = rospy.get_param('~motor_torque_constant', 2.6149)
     publish_tf = rospy.get_param('~publish_tf', True)
     publish_odometry = rospy.get_param('~publish_odometry', True)
     publish_pose = rospy.get_param('~publish_pose', True)
@@ -210,10 +212,10 @@ def driverNode():
     robot_y_pos = 0.0
     robot_th_pos = 0.0
 
-    wheel_FL_ang_pos = 0.0
-    wheel_FR_ang_pos = 0.0
-    wheel_RL_ang_pos = 0.0
-    wheel_RR_ang_pos = 0.0
+    wheel_pos = [0.0, 0.0, 0.0, 0.0]
+    wheel_vel = [0.0, 0.0, 0.0, 0.0]
+    wheel_curr = [0.0, 0.0, 0.0, 0.0]
+
     last_time = rospy.Time.now()
 
     # VARIABLE FOR ERROR TRACKING
@@ -327,113 +329,85 @@ def driverNode():
                 rospy.logerr("Error Calculating and publishing bat data")
 
 
-            # inverse kinematics
+            # query position
             try:
-                position_FL = front_controller.sdo['Qry_ABCNTR'][2].raw
+                wheel_pos[0] = front_controller.sdo['Qry_ABCNTR'][2].raw
             except:
                 rospy.logwarn("Error reading front left controller sdo")
             try:
-                position_FR = front_controller.sdo['Qry_ABCNTR'][1].raw
+                wheel_pos[1] = front_controller.sdo['Qry_ABCNTR'][1].raw
             except:
                 rospy.logwarn("Error reading front right controller sdo")
             try:
-                position_RL = rear_controller.sdo['Qry_ABCNTR'][2].raw
+                wheel_pos[2] = rear_controller.sdo['Qry_ABCNTR'][2].raw
             except:
                 rospy.logwarn("Error reading rear left controller sdo")
             try:  
-                position_RR = rear_controller.sdo['Qry_ABCNTR'][1].raw
+                wheel_pos[3] = rear_controller.sdo['Qry_ABCNTR'][1].raw
+            except:
+                rospy.logwarn("Error reading rear right controller sdo")
+
+            # query velocity
+            try:
+                wheel_pos[0] = front_controller.sdo['Qry_ABSPEED'][2].raw
+            except:
+                rospy.logwarn("Error reading front left controller sdo")
+            try:
+                wheel_pos[1] = front_controller.sdo['Qry_ABSPEED'][1].raw
+            except:
+                rospy.logwarn("Error reading front right controller sdo")
+            try:
+                wheel_pos[2] = rear_controller.sdo['Qry_ABSPEED'][2].raw
+            except:
+                rospy.logwarn("Error reading rear left controller sdo")
+            try:  
+                wheel_pos[3] = rear_controller.sdo['Qry_ABSPEED'][1].raw
             except:
                 rospy.logwarn("Error reading rear right controller sdo")
 
 
-            # position_FL / RK.encoder_resolution - > full wheel rotations
-            wheel_FL_ang_pos = 2.0 * math.pi * position_FL / RK.encoder_resolution / RK.gear_ratio  # radians
-            wheel_FR_ang_pos = 2.0 * math.pi * position_FR / RK.encoder_resolution / RK.gear_ratio
-            wheel_RL_ang_pos = 2.0 * math.pi * position_RL / RK.encoder_resolution / RK.gear_ratio
-            wheel_RR_ang_pos = 2.0 * math.pi * position_RR / RK.encoder_resolution / RK.gear_ratio
-
-
-            try:
-                velocity_FL = front_controller.sdo['Qry_ABSPEED'][2].raw
-            except:
-                rospy.logwarn("Error reading front left controller sdo")
-            try:
-                velocity_FR = front_controller.sdo['Qry_ABSPEED'][1].raw
-            except:
-                rospy.logwarn("Error reading front right controller sdo")
-            try:
-                velocity_RL = rear_controller.sdo['Qry_ABSPEED'][2].raw
-            except:
-                rospy.logwarn("Error reading rear left controller sdo")
-            try:  
-                velocity_RR = rear_controller.sdo['Qry_ABSPEED'][1].raw
-            except:
-                rospy.logwarn("Error reading rear right controller sdo")
-
-            # convert RPM to rad/s
-            wheel_FL_ang_vel = velocity_FL / 60.0 * 2.0 * math.pi / RK.gear_ratio
-            wheel_FR_ang_vel = velocity_FR / 60.0 * 2.0 * math.pi / RK.gear_ratio
-            wheel_RL_ang_vel = velocity_RL / 60.0 * 2.0 * math.pi / RK.gear_ratio
-            wheel_RR_ang_vel = velocity_RR / 60.0 * 2.0 * math.pi / RK.gear_ratio
-
-
+            # query current
             # division by 10 is needed according to documentation
             try:
-                current_FL = front_controller.sdo['Qry_MOTAMPS'][2].raw / 10.0
+                wheel_curr[0] = front_controller.sdo['Qry_MOTAMPS'][2].raw / 10.0
             except:
                 rospy.logwarn("Error reading current front left controller sdo")
             try:
-                current_FR = front_controller.sdo['Qry_MOTAMPS'][1].raw / 10.0
+                wheel_curr[1] = front_controller.sdo['Qry_MOTAMPS'][1].raw / 10.0
             except:
                 rospy.logwarn("Error reading current front right controller sdo")
             try:
-                current_RL = rear_controller.sdo['Qry_MOTAMPS'][2].raw / 10.0
+                wheel_curr[2] = rear_controller.sdo['Qry_MOTAMPS'][2].raw / 10.0
             except:
                 rospy.logwarn("Error reading current rear left controller sdo")
             try:  
-                current_RR = rear_controller.sdo['Qry_MOTAMPS'][1].raw / 10.0
+                wheel_curr[3] = rear_controller.sdo['Qry_MOTAMPS'][1].raw / 10.0
             except:
                 rospy.logwarn("Error reading current rear right controller sdo")
 
-            wheel_FL_tq = current_FL * motor_torque_constant * sign(wheel_FL_ang_vel)
-            wheel_FR_tq = current_FR * motor_torque_constant * sign(wheel_FR_ang_vel)
-            wheel_RL_tq = current_RL * motor_torque_constant * sign(wheel_RL_ang_vel)
-            wheel_RR_tq = current_RR * motor_torque_constant * sign(wheel_RR_ang_vel)
 
             joint_state_msg.header.stamp = rospy.Time.now()
             joint_state_msg.header.seq = seq_counter
 
-            joint_state_msg.position = [
-                wheel_FL_ang_pos,
-                wheel_FR_ang_pos,
-                wheel_RL_ang_pos,
-                wheel_RR_ang_pos
-            ]
 
-            joint_state_msg.velocity = [
-                wheel_FL_ang_vel,
-                wheel_FR_ang_vel,
-                wheel_RL_ang_vel,
-                wheel_RR_ang_vel
-            ]
-
+            # convert tics to rad
+            joint_state_msg.position = [2.0 * math.pi * pos / RK.encoder_resolution / RK.gear_ratio for pos in wheel_pos]
+            # convert RPM to rad/s
+            joint_state_msg.velocity = [vel / 60.0 * 2.0 * math.pi / RK.gear_ratio for vel in wheel_vel]
+            # convert to A to Nm
             joint_state_msg.effort = [
-                wheel_FL_tq,
-                wheel_FR_tq,
-                wheel_RL_tq,
-                wheel_RR_tq
-            ]
+               wheel_curr[i] * motor_torque_constant * sign(wheel_vel[i]) for i in range(wheel_curr)]
 
             joint_state_publisher.publish(joint_state_msg)
 
             try:
                 robot_x_pos, robot_y_pos, robot_th_pos = RK.inverseKinematics(
-                    wheel_FL_ang_vel, wheel_FR_ang_vel, wheel_RL_ang_vel, wheel_RR_ang_vel, dt_)
+                    *joint_state_msg.velocity, dt_)
             except:
                 rospy.logwarn("Couldn't get robot pose")
             # rospy.loginfo("Robot pos: [x, y, th]: [%0.3f, %0.3f, %0.3f]" % (robot_x_pos, robot_y_pos, robot_th_pos*180/3.14))
             RK.wheels_angular_velocity = [
-                wheel_FL_ang_vel, wheel_FR_ang_vel, wheel_RR_ang_vel, wheel_RL_ang_vel]
+                *joint_state_msg.velocity]
             qx, qy, qz, qw = eulerToQuaternion(robot_th_pos, 0, 0)
 
             if publish_pose == True:
