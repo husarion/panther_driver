@@ -2,15 +2,16 @@ version: "2.3"
 
 services:
   panther_driver:
-    image: husarion/panther-driver:latest
+    build: .
     container_name: panther_driver
     network_mode: host
     ipc: host
     restart: always
+    privileged: true
     tty: true
     environment:
-      - ROS_IP=10.15.20.2
-      - ROS_MASTER_URI=http://10.15.20.2:11311
+      - ROS_IP=127.0.0.1
+      - ROS_MASTER_URI=http://127.0.0.1:11311
       - PANTHER_HAS_CONFIG
       - PANTHER_IMU_LOCALIZATION_X
       - PANTHER_IMU_LOCALIZATION_Y
@@ -20,44 +21,46 @@ services:
       - PANTHER_IMU_ORIENTATION_Y
     privileged: true
     volumes:
-      - /sys/bus/iio/devices:/sys/bus/iio/devices
-    command: roslaunch panther_driver driver.launch --wait
-
-  ros_master:
-    image: ros:noetic-ros-core
-    tty: true 
-    container_name: ros_master
-    network_mode: host
-    ipc: host
-    restart: always
-    environment:
-      - ROS_IP=10.15.20.2
-    command: roscore
-
-  webui-ros-joystick:
-    image: husarion/webui-ros-joystick:noetic-latest
-    tty: true 
-    container_name: webui-ros-joystick
-    network_mode: host
-    ipc: host
-    restart: always
-    environment:
-      - ROS_IP=10.15.20.2
-      - ROS_MASTER_URI=http://10.15.20.2:11311
-    command: roslaunch webui-ros-joystick webui.launch linear_scale:=1 angular_scale:=1 --wait
-
-  panther_lights:
-    image: husarion/panther-lights:latest
-    container_name: panther_lights
-    tty: true 
-    privileged: true
-    network_mode: host
-    restart: always
-    environment:
-      - ROS_IP=10.15.20.2
-      - ROS_MASTER_URI=http://10.15.20.2:11311
-    volumes:
       - /dev/gpiomem:/dev/gpiomem
       - /sys:/sys
-    command: roslaunch panther_lights controler.launch --wait
+      - ./panther_driver:/app/ros_ws/src/panther_driver
+    command: rosrun panther_driver powerboard_client.py
+
+  # ros_master:
+  #   image: ros:noetic-ros-core
+  #   tty: true 
+  #   container_name: ros_master
+  #   network_mode: host
+  #   ipc: host
+  #   restart: always
+  #   environment:
+  #     - ROS_IP=10.15.20.2
+  #   command: roscore
+
+  # webui-ros-joystick:
+  #   image: husarion/webui-ros-joystick:noetic-latest
+  #   tty: true 
+  #   container_name: webui-ros-joystick
+  #   network_mode: host
+  #   ipc: host
+  #   restart: always
+  #   environment:
+  #     - ROS_IP=10.15.20.2
+  #     - ROS_MASTER_URI=http://10.15.20.2:11311
+  #   command: roslaunch webui-ros-joystick webui.launch linear_scale:=1 angular_scale:=1 --wait
+
+  # panther_lights:
+  #   image: husarion/panther-lights:latest
+  #   container_name: panther_lights
+  #   tty: true 
+  #   privileged: true
+  #   network_mode: host
+  #   restart: always
+  #   environment:
+  #     - ROS_IP=10.15.20.2
+  #     - ROS_MASTER_URI=http://10.15.20.2:11311
+  #   volumes:
+  #     - /dev/gpiomem:/dev/gpiomem
+  #     - /sys:/sys
+  #   command: roslaunch panther_lights controler.launch --wait
 

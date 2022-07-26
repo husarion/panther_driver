@@ -20,14 +20,17 @@ RUN apt update \
 RUN pip3 install \
         rosdep \
         rospkg \
-        canopen
-        
+        canopen \
+        RPi.GPIO \
+        gpiozero
+
 WORKDIR /app
 
 # Create and initialise ROS workspace
 RUN mkdir -p ros_ws/src
 COPY ./panther_driver ros_ws/src/panther_driver
 RUN chmod +x ros_ws/src/panther_driver/src/driver_node.py
+RUN chmod +x ros_ws/src/panther_driver/src/powerboard_client.py
 
 RUN cd ros_ws \
     && mkdir build \
