@@ -1,20 +1,19 @@
 #!/usr/bin/python3
 
-import math
-
-import yaml
 import canopen
+import math
 from numpy import NaN
+import yaml
 
 import rospy
 import tf2_ros
 
-from sensor_msgs.msg import BatteryState
-from sensor_msgs.msg import JointState
-from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import BatteryState
+from sensor_msgs.msg import JointState
 
 from ClassicKinematics import PantherClassic
 from MecanumKinematics import PantherMecanum
@@ -22,7 +21,8 @@ from MixedKinematics import PantherMix
 
 
 def sign(x):
-    return bool(x > 0) - bool(x < 0)
+    x_sign = bool(x > 0) - bool(x < 0)
+    return x_sign if x_sign != 0 else 1
 
 def factory(kinematics_type=0):
     if kinematics_type == "classic":
@@ -39,7 +39,7 @@ def factory(kinematics_type=0):
             "Unrecognized kinematics type, provide classic, mecanum or mix as rosparam [~wheel_type]")
 
 
-def eulerToQuaternion(yaw, pitch, roll):
+def euler_to_quaternion(yaw, pitch, roll):
     qx = math.sin(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) - \
         math.cos(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
     qy = math.cos(roll/2) * math.sin(pitch/2) * math.cos(yaw/2) + \
@@ -130,7 +130,6 @@ def driverNode():
     RK = factory(kinematics_type)
     br = tf2_ros.TransformBroadcaster()
     tf = TransformStamped()
-    seq_counter = 0
 
     # Battery
     battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
@@ -349,19 +348,19 @@ def driverNode():
 
             # query velocity
             try:
-                wheel_pos[0] = front_controller.sdo['Qry_ABSPEED'][2].raw
+                wheel_vel[0] = front_controller.sdo['Qry_ABSPEED'][2].raw
             except:
                 rospy.logwarn("Error reading front left controller sdo")
             try:
-                wheel_pos[1] = front_controller.sdo['Qry_ABSPEED'][1].raw
+                wheel_vel[1] = front_controller.sdo['Qry_ABSPEED'][1].raw
             except:
                 rospy.logwarn("Error reading front right controller sdo")
             try:
-                wheel_pos[2] = rear_controller.sdo['Qry_ABSPEED'][2].raw
+                wheel_vel[2] = rear_controller.sdo['Qry_ABSPEED'][2].raw
             except:
                 rospy.logwarn("Error reading rear left controller sdo")
             try:  
-                wheel_pos[3] = rear_controller.sdo['Qry_ABSPEED'][1].raw
+                wheel_vel[3] = rear_controller.sdo['Qry_ABSPEED'][1].raw
             except:
                 rospy.logwarn("Error reading rear right controller sdo")
 
@@ -387,13 +386,11 @@ def driverNode():
 
 
             joint_state_msg.header.stamp = rospy.Time.now()
-            joint_state_msg.header.seq = seq_counter
-
 
             # convert tics to rad
-            joint_state_msg.position = [2.0 * math.pi * pos / RK.encoder_resolution / RK.gear_ratio for pos in wheel_pos]
+            joint_state_msg.position = [(2.0 * math.pi) * (pos / (RK.encoder_resolution * RK.gear_ratio)) for pos in wheel_pos]
             # convert RPM to rad/s
-            joint_state_msg.velocity = [vel / 60.0 * 2.0 * math.pi / RK.gear_ratio for vel in wheel_vel]
+            joint_state_msg.velocity = [(2.0 * math.pi / 60) * (vel / RK.gear_ratio) for vel in wheel_vel]
             # convert to A to Nm
             joint_state_msg.effort = [
                wheel_curr[i] * motor_torque_constant * sign(wheel_vel[i]) for i in range(wheel_curr)]
@@ -405,10 +402,7 @@ def driverNode():
                     *joint_state_msg.velocity, dt_)
             except:
                 rospy.logwarn("Couldn't get robot pose")
-            # rospy.loginfo("Robot pos: [x, y, th]: [%0.3f, %0.3f, %0.3f]" % (robot_x_pos, robot_y_pos, robot_th_pos*180/3.14))
-            RK.wheels_angular_velocity = [
-                *joint_state_msg.velocity]
-            qx, qy, qz, qw = eulerToQuaternion(robot_th_pos, 0, 0)
+            qx, qy, qz, qw = euler_to_quaternion(robot_th_pos, 0, 0)
 
             if publish_pose == True:
                 pose_msg.position.x = robot_x_pos
@@ -422,7 +416,6 @@ def driverNode():
             if publish_tf == True:
                 tf.header.stamp = rospy.Time.now()
                 tf.header.frame_id = odom_frame
-                tf.header.seq = seq_counter
                 tf.child_frame_id = base_link_frame
                 tf.transform.translation.x = robot_x_pos
                 tf.transform.translation.y = robot_y_pos
@@ -436,7 +429,6 @@ def driverNode():
             if publish_odometry == True:
                 odom_msg.header.stamp = rospy.Time.now()
                 odom_msg.header.frame_id = odom_frame
-                odom_msg.header.seq = seq_counter
                 odom_msg.pose.pose.position.x = robot_x_pos
                 odom_msg.pose.pose.position.y = robot_y_pos
                 odom_msg.pose.pose.orientation.x = qx
@@ -450,8 +442,6 @@ def driverNode():
                 odom_msg.twist.twist.angular.y = 0
                 odom_msg.twist.twist.angular.z = 0
                 odom_publisher.publish(odom_msg)
-
-            seq_counter += 1
 
         except Exception as e:
             rospy.logerr(f"[Panther Driver] Error: {e}")

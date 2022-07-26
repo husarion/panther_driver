@@ -25,7 +25,7 @@ class PantherKinematics():
         self.scale_factor_x = 0.25
         self.scale_factor_y = 0.25
         self.scale_factor_th = 0.125
-        self.cmd_vel_command_time = rospy.Time()
+        self.cmd_vel_command_time = rospy.Time.now()
 
     def cmdVelCallback(self, data):
         # forward kinematics

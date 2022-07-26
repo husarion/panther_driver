@@ -17,7 +17,7 @@ For a `/joint_states` message is crying given data:
 
 - `velocity = [Front left, Front right, Rear left, Rear right]` - Encoder pulses per second
 
-- `effort = [Front left, Front right, Rear left, Rear right]` - Approximate motor current in Nm
+- `effort = [Front left, Front right, Rear left, Rear right]` - Approximate motor torque in Nm
 
 
 ### Subscribe
