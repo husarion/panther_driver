@@ -2,6 +2,7 @@
 
 import rospy
 from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse
+from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 
 import os
 import time
@@ -27,12 +28,12 @@ class PantherHardware:
     def __init__(self) -> None:
         # Setup GPIO pins
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(VMOT_ON, GPIO.OUT)
+        GPIO.setup(VMOT_ON, GPIO.OUT, initial=0)
         GPIO.setup(CHRG_SENSE, GPIO.IN)
-        GPIO.setup(AUX_PW_EN, GPIO.OUT)
-        GPIO.setup(CHRG_EN, GPIO.OUT)
-        GPIO.setup(VDIG_OFF, GPIO.OUT)
-        GPIO.setup(DRIVER_EN, GPIO.OUT)
+        GPIO.setup(AUX_PW_EN, GPIO.OUT, initial=0)
+        GPIO.setup(CHRG_EN, GPIO.OUT, initial=1)
+        GPIO.setup(VDIG_OFF, GPIO.OUT, initial=0)
+        GPIO.setup(DRIVER_EN, GPIO.OUT, initial=0)
         GPIO.setup(E_STOP_RESET, GPIO.IN) # USED AS I/O
 
         self.watchdog_pwm_thread = threading.Thread(name='watchdog_pwm proc', target=self.watchdog_pwm)
@@ -43,29 +44,79 @@ class PantherHardware:
 
         # Setup ROS Node
         rospy.init_node('panther_hardware')
+        self.aux_power_enable_service = rospy.Service('/panther_hardware/aux_power_enable', SetBool, self.handle_aux_power_enable)
+        self.charger_enable_service = rospy.Service('/panther_hardware/charger_enable', SetBool, self.handle_charger_enable)
+        self.disable_digital_service = rospy.Service('/panther_hardware/disable_digital_power', SetBool, self.handle_disable_digital_power)
         self.motors_enable_service = rospy.Service('/panther_hardware/motors_enable', SetBool, self.handle_motors_enable)
+        self.reset_estop_service = rospy.Service('/panther_hardware/reset_estop', Trigger, self.handle_reset_estop)
 
         rospy.spin()
 
 
-    def handle_motors_enable(self, req: SetBoolRequest):
-        print(f"Requested DRIVER_EN = {req.data}")
+    def handle_aux_power_enable(self, req: SetBoolRequest):
+        return self.handle_set_bool_srv(req.data, AUX_PW_EN, "Aux power enable")
 
-        success = False
+    def handle_charger_enable(self, req: SetBoolRequest):
+        return self.handle_set_bool_srv(req.data, CHRG_EN, "Charger enable")
+
+    def handle_disable_digital_power(self, req: SetBoolRequest):
+        return self.handle_set_bool_srv(req.data, VDIG_OFF, "Disable digital power")
+
+    def handle_motors_enable(self, req: SetBoolRequest):
+        return self.handle_set_bool_srv(req.data, DRIVER_EN, "Motors driver enable")
+
+    def handle_reset_estop(self, req: TriggerRequest):
+        # Read value before reset
+        estop_val = GPIO.input(E_STOP_RESET)
+        print(f"E-STOP state = {estop_val}")
+
+        # Switch e-stop pin to output
+        GPIO.setup(E_STOP_RESET, GPIO.OUT)
+
+        response = self.handle_trigger_srv(True, E_STOP_RESET, "E-STOP reset")
+        time.sleep(0.1)
+
+        # Switch back to input after writing
+        GPIO.setup(E_STOP_RESET, GPIO.IN)
+
+        return response
+
+    def handle_set_bool_srv(self, reqest, pin, name):
+        success = self.handle_gpio_write(reqest, pin, name)
+        msg = ""
+        if success:
+            msg = f"{name} successfull"
+        else:
+            msg = f"{name} failed"
+
+        return SetBoolResponse(success, msg)
+
+    def handle_trigger_srv(self, reqest, pin, name):
+        success = self.handle_gpio_write(reqest, pin, name)
+        msg = ""
+        if success:
+            msg = f"{name} successfull"
+        else:
+            msg = f"{name} failed"
+
+        return TriggerResponse(success, msg)
+
+
+    def handle_gpio_write(self, reqest, pin, name):
+        print(f"Requested {name} = {reqest}")
         
-        # Try to write to DRIVER_EN pin
+        # Try to write to pin
         try:
-            GPIO.output(DRIVER_EN, GPIO.HIGH)
+            GPIO.output(pin, reqest)
         except:
-            message = "Error writing to DRIVER_EN pin"
-            rospy.logwarn(message)
-            return SetBoolResponse(False, message)
+            rospy.logwarn(f"Error writing to {name} pin")
+            return False
         
         # Check that the pin value is correct
-        if GPIO.input(DRIVER_EN) == req.data:
-            return SetBoolResponse(True, "Motors enable successful")
+        if GPIO.input(pin) == reqest:
+            return True
         else: 
-            return SetBoolResponse(False, "Motors enable failed, try again")
+            return False
 
         
     def watchdog_pwm(self):
