@@ -26,17 +26,17 @@ def sign(x):
 
 def factory(kinematics_type=0):
     if kinematics_type == "classic":
-        rospy.loginfo("initializing classic kinematics")
+        rospy.loginfo(f"[PantherDriver] initializing classic kinematics")
         return PantherClassic()
     elif kinematics_type == "mecanum":
-        rospy.loginfo("initializing mecanum kinematics")
+        rospy.loginfo(f"[PantherDriver] initializing mecanum kinematics")
         return PantherMecanum()
     elif kinematics_type == "mix":
-        rospy.loginfo("initializing mixed kinematics")
+        rospy.loginfo(f"[PantherDriver] initializing mixed kinematics")
         return PantherMix()
     else:
         rospy.logerr(
-            "Unrecognized kinematics type, provide classic, mecanum or mix as rosparam [~wheel_type]")
+            f"[PantherDriver] unrecognized kinematics type, provide classic, mecanum or mix as rosparam [~wheel_type]")
 
 
 def euler_to_quaternion(yaw, pitch, roll):
@@ -118,7 +118,7 @@ def voltage_to_deg(V_temp):
 
 def driverNode():
 
-    rospy.init_node('~', anonymous=False)
+    rospy.init_node('PantherDriver', anonymous=False)
     kinematics_type = rospy.get_param('~wheel_type', "classic")
     odom_frame = rospy.get_param('~odom_frame', "odom")
     base_link_frame = rospy.get_param('~base_link_frame', "base_link")
@@ -139,7 +139,7 @@ def driverNode():
     if rospy.has_param('~measurements_file'):
         measurements_file = rospy.get_param('~measurements_file')
     else:
-        rospy.logerr("measurements_file not defined, can not start collecting ADC measurements")
+        rospy.logerr(f"[PantherDriver] measurements_file not defined, can not start collecting ADC measurements")
         return
 
     with open(measurements_file, "r") as stream:
@@ -188,22 +188,22 @@ def driverNode():
     if rospy.has_param('~eds_file'):
         eds_file = rospy.get_param('~eds_file')
     else:
-        rospy.logerr("eds_file not defined, can not start CAN interface")
+        rospy.logerr(f"[PantherDriver] eds_file not defined, can not start CAN interface")
         return
 
     loop_rate = 20
     rate = rospy.Rate(loop_rate)
-    rospy.loginfo("Start with creating a network representing one CAN bus")
+    rospy.loginfo(f"[PantherDriver] Start with creating a network representing one CAN bus")
     network = canopen.Network()
-    rospy.loginfo("Add some nodes with corresponding Object Dictionaries")
+    rospy.loginfo(f"[PantherDriver] Add some nodes with corresponding Object Dictionaries")
     front_controller = canopen.RemoteNode(1, eds_file)
     rear_controller = canopen.RemoteNode(2, eds_file)
     network.add_node(front_controller)
     network.add_node(rear_controller)
-    rospy.loginfo("Connect to the CAN bus")
+    rospy.loginfo(f"[PantherDriver] Connect to the CAN bus")
     network.connect(channel=can_interface, bustype='socketcan')
 
-    # rospy.loginfo("Reset encoders")
+    # rospy.loginfo(f"[PantherDriver] Reset encoders")
     # front_controller.sdo['Cmd_SENCNTR'][1].raw = 0
     # front_controller.sdo['Cmd_SENCNTR'][2].raw = 0
 
@@ -224,7 +224,7 @@ def driverNode():
         try:
             rospy.get_master().getPid()
         except:
-            rospy.logerr("Error getting master")
+            rospy.logerr(f"[PantherDriver] Error getting master")
             exit(1)
         try:
             now = rospy.Time.now()
@@ -240,26 +240,26 @@ def driverNode():
             try:
                 front_controller.sdo['Cmd_CANGO'][2].raw = RK.FL_enc_speed
             except:
-                rospy.logwarn("Error while writing to front left Cmd_CANGO")
+                rospy.logwarn(f"[PantherDriver] Error while writing to front left Cmd_CANGO")
             try:
                 front_controller.sdo['Cmd_CANGO'][1].raw = RK.FR_enc_speed
             except:
-                rospy.logwarn("Error while writing to front right Cmd_CANGO")
+                rospy.logwarn(f"[PantherDriver] Error while writing to front right Cmd_CANGO")
             try:
                 rear_controller.sdo['Cmd_CANGO'][2].raw = RK.RL_enc_speed
             except:
-                rospy.logwarn("Error while writing to rear left Cmd_CANGO")
+                rospy.logwarn(f"[PantherDriver] Error while writing to rear left Cmd_CANGO")
             try:
                 rear_controller.sdo['Cmd_CANGO'][1].raw = RK.RR_enc_speed
             except:
-                rospy.logwarn("Error while writing to rear right Cmd_CANGO")
+                rospy.logwarn(f"[PantherDriver] Error while writing to rear right Cmd_CANGO")
 
             # Get battery Data
             try:
                 Idriv1 = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
                 Idriv2 = float(rear_controller.sdo['Qry_BATAMPS'][1].raw)/10
             except:
-                rospy.logwarn("Error getting battery data from CAN")
+                rospy.logwarn(f"[PantherDriver] Error getting battery data from CAN")
 
             try:
                 V_bat1 = get_ADC_measurement("BAT1_voltage", config_file)
@@ -270,27 +270,27 @@ def driverNode():
                 Icharge_bat2 = get_ADC_measurement("BAT2_charge_current", config_file)
                 Idig = get_ADC_measurement("IDIG_current", config_file)
             except:
-                rospy.logerr("Battery ADC measurement error excep")
+                rospy.logerr(f"[PantherDriver] Battery ADC measurement error excep")
 
             # Try Calculate and publish BAT data
             try: 
                 # Check battery num
                 if V_temp_bat2 > 3.2: # ONE Battery
-                    rospy.loginfo("One bat detected")
+                    rospy.loginfo(f"[PantherDriver] One bat detected")
 
                     # Calculate Temp in deg of Celcius
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
 
                     Ibat1 =  -1 * ( Idriv1 + Idriv2 + Idig - Icharge_bat1)
 
-                    rospy.loginfo(f"BATTERY LOG: Idig={Idig}, " +
+                    rospy.loginfo(f"[PantherDriver] BATTERY LOG: Idig={Idig}, " +
                         f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
                         f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}")
 
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
                     publish_battery_msg(battery2_publisher, False)
                 else:
-                    rospy.loginfo("Two bat detected")
+                    rospy.loginfo(f"[PantherDriver] Two bat detected")
 
                     # Calculate Temp in deg of Celcius
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
@@ -305,12 +305,12 @@ def driverNode():
                     elif V_diff < -0.2:
                         k = 0
                     else:
-                        rospy.logger("V_difff out of range")
+                        rospy.logger(f"[PantherDriver] V_difff out of range")
 
                     Ibat1 = -1 * ( Idriv1 + (k * Idig) - Icharge_bat1)
                     Ibat2 = -1 * ( Idriv2 + ((1-k) * Idig) - Icharge_bat2 )
 
-                    rospy.loginfo(f"BATTERY LOG: k={k}, Idig={Idig}, " +
+                    rospy.loginfo(f"[PantherDriver] BATTERY LOG: k={k}, Idig={Idig}, " +
                         f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
                         f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}, " +
                         f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}, " +
@@ -325,44 +325,44 @@ def driverNode():
 
                     publish_battery_msg(battery_publisher, True, V_bat_avereage, temp_average, I_bat_average)
             except:
-                rospy.logerr("Error Calculating and publishing bat data")
+                rospy.logerr(f"[PantherDriver] Error Calculating and publishing bat data")
 
 
             # query position
             try:
                 wheel_pos[0] = front_controller.sdo['Qry_ABCNTR'][2].raw
             except:
-                rospy.logwarn("Error reading front left controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading front left controller sdo")
             try:
                 wheel_pos[1] = front_controller.sdo['Qry_ABCNTR'][1].raw
             except:
-                rospy.logwarn("Error reading front right controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading front right controller sdo")
             try:
                 wheel_pos[2] = rear_controller.sdo['Qry_ABCNTR'][2].raw
             except:
-                rospy.logwarn("Error reading rear left controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading rear left controller sdo")
             try:  
                 wheel_pos[3] = rear_controller.sdo['Qry_ABCNTR'][1].raw
             except:
-                rospy.logwarn("Error reading rear right controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading rear right controller sdo")
 
             # query velocity
             try:
                 wheel_vel[0] = front_controller.sdo['Qry_ABSPEED'][2].raw
             except:
-                rospy.logwarn("Error reading front left controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading front left controller sdo")
             try:
                 wheel_vel[1] = front_controller.sdo['Qry_ABSPEED'][1].raw
             except:
-                rospy.logwarn("Error reading front right controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading front right controller sdo")
             try:
                 wheel_vel[2] = rear_controller.sdo['Qry_ABSPEED'][2].raw
             except:
-                rospy.logwarn("Error reading rear left controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading rear left controller sdo")
             try:  
                 wheel_vel[3] = rear_controller.sdo['Qry_ABSPEED'][1].raw
             except:
-                rospy.logwarn("Error reading rear right controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading rear right controller sdo")
 
 
             # query current
@@ -370,19 +370,19 @@ def driverNode():
             try:
                 wheel_curr[0] = front_controller.sdo['Qry_MOTAMPS'][2].raw / 10.0
             except:
-                rospy.logwarn("Error reading current front left controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading current front left controller sdo")
             try:
                 wheel_curr[1] = front_controller.sdo['Qry_MOTAMPS'][1].raw / 10.0
             except:
-                rospy.logwarn("Error reading current front right controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading current front right controller sdo")
             try:
                 wheel_curr[2] = rear_controller.sdo['Qry_MOTAMPS'][2].raw / 10.0
             except:
-                rospy.logwarn("Error reading current rear left controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading current rear left controller sdo")
             try:  
                 wheel_curr[3] = rear_controller.sdo['Qry_MOTAMPS'][1].raw / 10.0
             except:
-                rospy.logwarn("Error reading current rear right controller sdo")
+                rospy.logwarn(f"[PantherDriver] Error reading current rear right controller sdo")
 
 
             joint_state_msg.header.stamp = rospy.Time.now()
@@ -393,7 +393,7 @@ def driverNode():
             joint_state_msg.velocity = [(2.0 * math.pi / 60) * (vel / RK.gear_ratio) for vel in wheel_vel]
             # convert to A to Nm
             joint_state_msg.effort = [
-               wheel_curr[i] * motor_torque_constant * sign(wheel_vel[i]) for i in range(wheel_curr)]
+               wheel_curr[i] * motor_torque_constant * sign(wheel_vel[i]) for i in range(len(wheel_curr))]
 
             joint_state_publisher.publish(joint_state_msg)
 
@@ -401,7 +401,7 @@ def driverNode():
                 robot_x_pos, robot_y_pos, robot_th_pos = RK.inverseKinematics(
                     *joint_state_msg.velocity, dt_)
             except:
-                rospy.logwarn("Couldn't get robot pose")
+                rospy.logwarn(f"[PantherDriver] Couldn't get robot pose")
             qx, qy, qz, qw = euler_to_quaternion(robot_th_pos, 0, 0)
 
             if publish_pose == True:
@@ -444,7 +444,7 @@ def driverNode():
                 odom_publisher.publish(odom_msg)
 
         except Exception as e:
-            rospy.logerr(f"[Panther Driver] Error: {e}")
+            rospy.logerr(f"[PantherDriver] Error: {e}")
             err_count+=1
             if err_count >= 10:
                 return
@@ -455,5 +455,5 @@ def driverNode():
 if __name__ == '__main__':
     try:
         driverNode()
-    except rospy.ROSInterruptException:
-        pass
+    except Exception as e:
+        rospy.logerr(f"[PantherDriver] Error: {e}")
