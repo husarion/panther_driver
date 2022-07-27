@@ -18,7 +18,8 @@ from std_msgs.msg import Bool
 VMOT_ON = 6
 CHRG_SENSE = 7
 WATCHDOG = 14
-SHDN_INIT = 16
+FAN_SW = 15
+# SHDN_INIT = 16 Shutdown Init managed by systemd service
 AUX_PW_EN = 18
 CHRG_EN = 19
 VDIG_OFF = 21
@@ -32,6 +33,7 @@ class PantherHardware:
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(VMOT_ON, GPIO.OUT, initial=0)
         GPIO.setup(CHRG_SENSE, GPIO.IN)
+        GPIO.setup(FAN_SW, GPIO.OUT, initial=0)
         GPIO.setup(AUX_PW_EN, GPIO.OUT, initial=0)
         GPIO.setup(CHRG_EN, GPIO.OUT, initial=1)
         GPIO.setup(VDIG_OFF, GPIO.OUT, initial=0)
@@ -42,15 +44,13 @@ class PantherHardware:
         self.watchdog_pwm = PWMOutputDevice(WATCHDOG)
         self.toggle_watchdog()
 
-        self.soft_stop_thread = threading.Thread(name='soft stop proc', target=self.soft_stop)
-        self.soft_stop_thread.start()
-
         # Setup ROS Node
         rospy.init_node('panther_hardware')
         self.aux_power_enable_service = rospy.Service('/panther_hardware/aux_power_enable', SetBool, self.handle_aux_power_enable)
         self.charger_enable_service = rospy.Service('/panther_hardware/charger_enable', SetBool, self.handle_charger_enable)
         self.disable_digital_service = rospy.Service('/panther_hardware/disable_digital_power', SetBool, self.handle_disable_digital_power)
         self.motors_enable_service = rospy.Service('/panther_hardware/motors_enable', SetBool, self.handle_motors_enable)
+        self.fan_enable_service = rospy.Service('/panther_hardware/fan_enable', SetBool, self.handle_fan_enable)
         self.reset_e_stop_service = rospy.Service('/panther_hardware/reset_e_stop', Trigger, self.handle_reset_e_stop)
         self.toggle_e_stop_service = rospy.Service('/panther_hardware/toggle_e_stop', Trigger, self.handle_toggle_e_stop)
 
@@ -60,7 +60,19 @@ class PantherHardware:
         self.charger_state_pub = rospy.Publisher('/panther_hardware/charger_sens', Bool, queue_size=1)
         self.timer_charger = rospy.Timer(rospy.Duration(0.5), self.publish_charger_state)
 
+        self.first_start_sequence()
+
         rospy.spin()
+
+    def first_start_sequence(self):
+        GPIO.output(VMOT_ON, 1)
+        time.sleep(0.5)
+
+        GPIO.output(DRIVER_EN, 1)
+        time.sleep(0.2)
+
+        GPIO.output(AUX_PW_EN, 1)
+
 
     def publish_e_stop_state(self, event=None):
         msg = Bool()
@@ -83,6 +95,9 @@ class PantherHardware:
 
     def handle_motors_enable(self, req: SetBoolRequest):
         return self.handle_set_bool_srv(req.data, DRIVER_EN, "Motors driver enable")
+
+    def handle_fan_enable(self, req: SetBoolRequest):
+        return self.handle_set_bool_srv(req.data, FAN_SW, "Fan enable")
 
     def handle_reset_e_stop(self, req: TriggerRequest):
         # Read value before reset
@@ -148,15 +163,10 @@ class PantherHardware:
             self.watchdog_pwm.off()
             self.watchdog_on = False
         else:
-            freqency = 10
+            freqency = 50
             step = 1/freqency/2
             self.watchdog_pwm.blink(on_time=step,off_time=step)
             self.watchdog_on = True
-
-    def soft_stop(self):
-        button = Button(SHDN_INIT, pull_up = False)
-        button.wait_for_press()
-        os.system('sudo shutdown now')
 
 
 if __name__ == '__main__':

@@ -30,7 +30,7 @@ WORKDIR /app
 RUN mkdir -p ros_ws/src
 COPY ./panther_driver ros_ws/src/panther_driver
 RUN chmod +x ros_ws/src/panther_driver/src/driver_node.py
-RUN chmod +x ros_ws/src/panther_driver/src/powerboard_client.py
+RUN chmod +x ros_ws/src/panther_driver/src/panther_hardware.py
 
 RUN cd ros_ws \
     && mkdir build \
