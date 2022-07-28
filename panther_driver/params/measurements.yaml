@@ -1,18 +1,18 @@
 
 # U12
 
-BAT2_voltage: 
+BAT1_voltage: 
   path: "/sys/bus/iio/devices/iio:device1/in_voltage0_raw"
   LSB: 0.02504255
   unit: "V"
 
 IDIG_current: 
-  path: "/sys/bus/iio/devices/iio:device1/in_voltage1_raw"
-  LSB: 0.008
+  path: "/sys/bus/iio/devices/iio:device1/in_voltage2_raw"
+  LSB: 0.0133
   unit: "V"
 
-BAT1_voltage: 
-  path: "/sys/bus/iio/devices/iio:device1/in_voltage2_raw"
+BAT2_voltage: 
+  path: "/sys/bus/iio/devices/iio:device1/in_voltage3_raw"
   LSB: 0.02504255
   unit: "V"
 
