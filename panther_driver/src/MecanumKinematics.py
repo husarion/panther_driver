@@ -1,7 +1,13 @@
 #!/usr/bin/python3
 
 import math
-
+import rospy
+from sensor_msgs.msg import BatteryState
+from sensor_msgs.msg import JointState
+from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import TransformStamped
+import tf2_ros
 from PantherKinematics import PantherKinematics
 
 
@@ -31,12 +37,12 @@ class PantherMecanum(PantherKinematics):
         angular_velocity_z_ = (-wheel_FL_ang_vel + wheel_FR_ang_vel - wheel_RL_ang_vel + wheel_RR_ang_vel) * (
             self.wheel_radius/(4 * (self.robot_width / 2 + self.robot_length / 2)))
 
-        delta_heading = angular_velocity_z_ / dt_  # [radians]
+        delta_heading = angular_velocity_z_ * dt_  # [radians]
         self.robot_th_pos = self.robot_th_pos + delta_heading
         delta_x = (linear_velocity_x_ * math.cos(self.robot_th_pos) -
-                   linear_velocity_y_ * math.sin(self.robot_th_pos)) / dt_  # [m]
+                   linear_velocity_y_ * math.sin(self.robot_th_pos)) * dt_  # [m]
         delta_y = (linear_velocity_x_ * math.sin(self.robot_th_pos) +
-                   linear_velocity_y_ * math.cos(self.robot_th_pos)) / dt_  # [m]
+                   linear_velocity_y_ * math.cos(self.robot_th_pos)) * dt_  # [m]
         self.robot_x_pos = self.robot_x_pos + delta_x
         self.robot_y_pos = self.robot_y_pos + delta_y
         return self.robot_x_pos, self.robot_y_pos, self.robot_th_pos
