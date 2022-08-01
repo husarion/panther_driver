@@ -62,4 +62,3 @@ services:
       - /dev/gpiomem:/dev/gpiomem
       - /sys:/sys
     command: roslaunch panther_lights controler.launch --wait
-
