@@ -32,7 +32,7 @@ class Watchdog:
     def turn_on(self) -> None:
         if not self._watchdog_on:
             frequency = 50
-            step = 1 / frequency / 2
+            step = (1 / frequency) / 2
             self._watchdog_pwm.blink(on_time=step, off_time=step)
             self._watchdog_on = True
 
@@ -55,7 +55,9 @@ class PantherHardware:
         self._e_stop_state_pub = rospy.Publisher(
             "/panther_hardware/e_stop", Bool, queue_size=1
         )
-        self._timer_e_stop = rospy.Timer(rospy.Duration(0.1), self._publish_e_stop_state)
+        self._timer_e_stop = rospy.Timer(
+            rospy.Duration(0.1), self._publish_e_stop_state
+        )
 
         self._charger_state_pub = rospy.Publisher(
             "/panther_hardware/charger_sens", Bool, queue_size=1
@@ -70,10 +72,10 @@ class PantherHardware:
         self._charger_enable_srv = rospy.Service(
             "/panther_hardware/charger_enable", SetBool, self._charger_enable_cb
         )
-        self._digital_power_disable_srv = rospy.Service(
-            "/panther_hardware/digital_power_disable",
+        self._digital_power_enable_srv = rospy.Service(
+            "/panther_hardware/digital_power_enable",
             SetBool,
-            self._digital_power_disable_cb,
+            self._digital_power_enable_cb,
         )
         self._motors_enable_srv = rospy.Service(
             "/panther_hardware/motors_enable", SetBool, self._motors_enable_cb
@@ -124,85 +126,69 @@ class PantherHardware:
         self._charger_state_pub.publish(msg)
 
     def _aux_power_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self._handle_set_bool_srv(req, AUX_PW_EN, "Aux power enable")
+        return self._handle_set_bool_srv(req.data, AUX_PW_EN, "Aux power enable")
 
     def _charger_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self._handle_set_bool_srv(req, CHRG_EN, "Charger enable")
+        return self._handle_set_bool_srv(req.data, CHRG_EN, "Charger enable")
 
-    def _digital_power_disable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self._handle_set_bool_srv(req, VDIG_OFF, "Digital power disable")
+    def _digital_power_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
+        return self._handle_set_bool_srv(not req.data, VDIG_OFF, "Digital power enable")
 
     def _motors_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self._handle_set_bool_srv(req, DRIVER_EN, "Motors driver enable")
+        return self._handle_set_bool_srv(req.data, DRIVER_EN, "Motors driver enable")
 
     def _fan_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self._handle_set_bool_srv(req, FAN_SW, "Fan enable")
+        return self._handle_set_bool_srv(req.data, FAN_SW, "Fan enable")
 
     def _e_stop_trigger_cb(self, req: TriggerRequest) -> TriggerResponse:
         self._watchdog.turn_off()
         return TriggerResponse(True, f"E-STOP triggered, watchdog turned off")
 
     def _e_stop_reset_cb(self, req: TriggerRequest) -> TriggerResponse:
-        # Read value before reset
-        e_stop_initial_val = self._read_e_stop_pin()
+        if self._validate_e_stop_pin(False):
+            return TriggerResponse(
+                False, "E-STOP was not triggered, reset is not needed"
+            )
 
-        # Check if E-STOP reset is needed
-        if e_stop_initial_val == False:
-            msg = "E-STOP was not triggered, reset is not needed"
-            response = TriggerResponse(False, msg)
-            return response
+        self.reset_e_stop()
 
-        # Switch e-stop pin to output
+        if self._validate_e_stop_pin(True):
+            return TriggerResponse(
+                False,
+                "E-STOP reset not successful, state unchanged, check for pressed E-STOP buttons or other sources",
+            )
+
+        return TriggerResponse(False, "E-STOP reset successful")
+
+    def reset_e_stop(self) -> None:
         GPIO.setup(E_STOP_RESET, GPIO.OUT)
-
-        # Perform reset
-        success = self._write_and_validate_gpio(True, E_STOP_RESET, "E-STOP reset")
         self._watchdog.turn_on()
+
+        GPIO.output(E_STOP_RESET, False)
         time.sleep(0.1)
 
-        # Switch back to input after writing
         GPIO.setup(E_STOP_RESET, GPIO.IN)
 
-        # Check if E-STOP reset succeeded
-        e_stop_val = self._read_e_stop_pin()
+    def _handle_set_bool_srv(self, value: bool, pin: int, name: str) -> SetBoolResponse:
+        rospy.logdebug(f"Requested {name} = {value}")
+        GPIO.output(pin, value)
+        success = self._validate_gpio_pin(pin, value)
 
-        # Send correct response
-        if e_stop_initial_val == e_stop_val or not success:
-            msg = (
-                "E-STOP reset not successful, state unchanged, check for pressed E-STOP buttons or other sources"
-            )
-            response = TriggerResponse(False, msg)
-            return response
-
-        msg = "E-STOP reset successful"
-        response = TriggerResponse(success, msg)
-        return response
-
-    def _handle_set_bool_srv(self, request, pin, name) -> SetBoolResponse:
-        success = self._write_and_validate_gpio(request.data, pin, name)
-        msg = ""
+        msg = f"{name} write {value} failed"
         if success:
-            msg = f"{name} write {request.data} successful"
-        else:
-            msg = f"{name} write {request.data} failed"
+            msg = f"{name} write {value} successful"
 
         return SetBoolResponse(success, msg)
 
-    def _write_and_validate_gpio(self, value: bool, pin: int, name: str) -> bool:
-        rospy.logdebug(f"Requested {name} = {value}")
-
-        # Try to write to pin
-        try:
-            GPIO.output(pin, value)
-        except:
-            rospy.logwarn(f"Error writing to {name} pin")
-            return False
-
-        # Check that the pin value is correct
+    def _validate_gpio_pin(self, pin: int, value: bool) -> bool:
         if GPIO.input(pin) == value:
             return True
-        else:
-            return False
+        return False
+
+    def _validate_e_stop_pin(self, value: bool) -> bool:
+        if self._read_e_stop_pin(self) == value:
+            return True
+        return False
 
     def _read_e_stop_pin(self) -> bool:
         """
