@@ -63,28 +63,28 @@ class PantherHardware:
             rospy.Duration(0.5), self.publish_charger_state
         )
 
-        self.aux_power_enable_service = rospy.Service(
+        self.aux_power_enable_srv = rospy.Service(
             "/panther_hardware/aux_power_enable", SetBool, self.handle_aux_power_enable
         )
-        self.charger_enable_service = rospy.Service(
+        self.charger_enable_srv = rospy.Service(
             "/panther_hardware/charger_enable", SetBool, self.handle_charger_enable
         )
-        self.disable_digital_service = rospy.Service(
-            "/panther_hardware/disable_digital_power",
+        self.digital_power_disable_srv = rospy.Service(
+            "/panther_hardware/digital_power_disable",
             SetBool,
-            self.handle_disable_digital_power,
+            self.handle_digital_power_disable,
         )
-        self.motors_enable_service = rospy.Service(
+        self.motors_enable_srv = rospy.Service(
             "/panther_hardware/motors_enable", SetBool, self.handle_motors_enable
         )
-        self.fan_enable_service = rospy.Service(
+        self.fan_enable_srv = rospy.Service(
             "/panther_hardware/fan_enable", SetBool, self.handle_fan_enable
         )
-        self.reset_e_stop_service = rospy.Service(
-            "/panther_hardware/reset_e_stop", Trigger, self.handle_reset_e_stop
+        self.e_stop_reset_srv = rospy.Service(
+            "/panther_hardware/e_stop_reset", Trigger, self.handle_e_stop_reset
         )
-        self.trigger_e_stop_service = rospy.Service(
-            "/panther_hardware/trigger_e_stop", Trigger, self.handle_trigger_e_stop
+        self.e_stop_trigger_srv = rospy.Service(
+            "/panther_hardware/e_stop_trigger", Trigger, self.handle_e_stop_trigger
         )
 
         self.motor_start_sequence()
@@ -130,7 +130,7 @@ class PantherHardware:
     def handle_charger_enable(self, req: SetBoolRequest) -> SetBoolResponse:
         return self.handle_set_bool_srv(req, CHRG_EN, "Charger enable")
 
-    def handle_disable_digital_power(self, req: SetBoolRequest) -> SetBoolResponse:
+    def handle_digital_power_disable(self, req: SetBoolRequest) -> SetBoolResponse:
         return self.handle_set_bool_srv(req, VDIG_OFF, "Digital power disable")
 
     def handle_motors_enable(self, req: SetBoolRequest) -> SetBoolResponse:
@@ -139,11 +139,11 @@ class PantherHardware:
     def handle_fan_enable(self, req: SetBoolRequest) -> SetBoolResponse:
         return self.handle_set_bool_srv(req, FAN_SW, "Fan enable")
 
-    def handle_trigger_e_stop(self, req: TriggerRequest) -> TriggerResponse:
+    def handle_e_stop_trigger(self, req: TriggerRequest) -> TriggerResponse:
         self._watchdog.turn_off()
         return TriggerResponse(True, f"E-STOP triggered, watchdog turned off")
 
-    def handle_reset_e_stop(self, req: TriggerRequest) -> TriggerResponse:
+    def handle_e_stop_reset(self, req: TriggerRequest) -> TriggerResponse:
         # Read value before reset
         e_stop_initial_val = self.read_e_stop_pin()
 
