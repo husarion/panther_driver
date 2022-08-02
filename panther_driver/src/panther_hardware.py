@@ -10,19 +10,7 @@ from std_msgs.msg import Bool
 from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 
-
-# Define pin names
-VMOT_ON = 6
-CHRG_SENSE = 7
-WATCHDOG = 14
-FAN_SW = 15
-# SHDN_INIT = 16 Shutdown Init managed by systemd service
-AUX_PW_EN = 18
-CHRG_EN = 19
-VDIG_OFF = 21
-DRIVER_EN = 23
-E_STOP_RESET = 27
-
+from pinout import *
 
 class Watchdog:
     def __init__(self) -> None:
@@ -150,21 +138,21 @@ class PantherHardware:
                 False, "E-STOP was not triggered, reset is not needed"
             )
 
-        self.reset_e_stop()
+        self._reset_e_stop()
 
         if self._validate_e_stop_pin(True):
             return TriggerResponse(
                 False,
-                "E-STOP reset not successful, state unchanged, check for pressed E-STOP buttons or other sources",
+                "E-STOP reset not successful, state unchanged, check for pressed E-STOP buttons or other sources"
             )
 
         return TriggerResponse(False, "E-STOP reset successful")
 
-    def reset_e_stop(self) -> None:
+    def _reset_e_stop(self) -> None:
         GPIO.setup(E_STOP_RESET, GPIO.OUT)
         self._watchdog.turn_on()
 
-        GPIO.output(E_STOP_RESET, False)
+        GPIO.output(E_STOP_RESET, True)
         time.sleep(0.1)
 
         GPIO.setup(E_STOP_RESET, GPIO.IN)
@@ -186,7 +174,7 @@ class PantherHardware:
         return False
 
     def _validate_e_stop_pin(self, value: bool) -> bool:
-        if self._read_e_stop_pin(self) == value:
+        if self._read_e_stop_pin() == value:
             return True
         return False
 
