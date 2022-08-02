@@ -24,16 +24,14 @@ RUN pip3 install \
         RPi.GPIO \
         gpiozero
 
-WORKDIR /app
+WORKDIR /ros_ws
 
-# Create and initialise ROS workspace
-RUN mkdir -p ros_ws/src
-COPY ./panther_driver ros_ws/src/panther_driver
-RUN chmod +x ros_ws/src/panther_driver/src/driver_node.py
-RUN chmod +x ros_ws/src/panther_driver/src/panther_hardware.py
+COPY ./panther_driver src/panther_driver
 
-RUN cd ros_ws \
-    && mkdir build \
+RUN chmod +x src/panther_driver/src/driver_node.py && \
+    chmod +x src/panther_driver/src/panther_hardware.py
+
+RUN mkdir build \
     && source /opt/ros/$ROS_DISTRO/setup.bash \
     && rosdep init \
     && rosdep update \

@@ -2,7 +2,7 @@ version: "2.3"
 
 services:
   panther_driver:
-    build: .
+    image: husarion/panther-driver:latest
     container_name: panther_driver
     network_mode: host
     ipc: host
@@ -22,7 +22,6 @@ services:
     volumes:
       - /dev/gpiomem:/dev/gpiomem
       - /sys:/sys
-      - ./panther_driver:/app/ros_ws/src/panther_driver
     command: roslaunch panther_driver driver.launch --wait
 
   ros_master:
