@@ -44,54 +44,53 @@ class Watchdog:
 
 class PantherHardware:
     def __init__(self) -> None:
-        self.setup_gpio()
+        self._setup_gpio()
+        self._motor_start_sequence()
 
         self._watchdog = Watchdog()
         self._watchdog.turn_on()
 
         rospy.init_node("panther_hardware")
 
-        self.e_stop_state_pub = rospy.Publisher(
+        self._e_stop_state_pub = rospy.Publisher(
             "/panther_hardware/e_stop", Bool, queue_size=1
         )
-        self.timer_e_stop = rospy.Timer(rospy.Duration(0.1), self.publish_e_stop_state)
+        self._timer_e_stop = rospy.Timer(rospy.Duration(0.1), self._publish_e_stop_state)
 
-        self.charger_state_pub = rospy.Publisher(
+        self._charger_state_pub = rospy.Publisher(
             "/panther_hardware/charger_sens", Bool, queue_size=1
         )
-        self.timer_charger = rospy.Timer(
-            rospy.Duration(0.5), self.publish_charger_state
+        self._timer_charger = rospy.Timer(
+            rospy.Duration(0.5), self._publish_charger_state
         )
 
-        self.aux_power_enable_srv = rospy.Service(
-            "/panther_hardware/aux_power_enable", SetBool, self.handle_aux_power_enable
+        self._aux_power_enable_srv = rospy.Service(
+            "/panther_hardware/aux_power_enable", SetBool, self._aux_power_enable_cb
         )
-        self.charger_enable_srv = rospy.Service(
-            "/panther_hardware/charger_enable", SetBool, self.handle_charger_enable
+        self._charger_enable_srv = rospy.Service(
+            "/panther_hardware/charger_enable", SetBool, self._charger_enable_cb
         )
-        self.digital_power_disable_srv = rospy.Service(
+        self._digital_power_disable_srv = rospy.Service(
             "/panther_hardware/digital_power_disable",
             SetBool,
-            self.handle_digital_power_disable,
+            self._digital_power_disable_cb,
         )
-        self.motors_enable_srv = rospy.Service(
-            "/panther_hardware/motors_enable", SetBool, self.handle_motors_enable
+        self._motors_enable_srv = rospy.Service(
+            "/panther_hardware/motors_enable", SetBool, self._motors_enable_cb
         )
-        self.fan_enable_srv = rospy.Service(
-            "/panther_hardware/fan_enable", SetBool, self.handle_fan_enable
+        self._fan_enable_srv = rospy.Service(
+            "/panther_hardware/fan_enable", SetBool, self._fan_enable_cb
         )
-        self.e_stop_reset_srv = rospy.Service(
-            "/panther_hardware/e_stop_reset", Trigger, self.handle_e_stop_reset
+        self._e_stop_reset_srv = rospy.Service(
+            "/panther_hardware/e_stop_reset", Trigger, self._e_stop_reset_cb
         )
-        self.e_stop_trigger_srv = rospy.Service(
-            "/panther_hardware/e_stop_trigger", Trigger, self.handle_e_stop_trigger
+        self._e_stop_trigger_srv = rospy.Service(
+            "/panther_hardware/e_stop_trigger", Trigger, self._e_stop_trigger_cb
         )
-
-        self.motor_start_sequence()
 
         rospy.spin()
 
-    def setup_gpio(self) -> None:
+    def _setup_gpio(self) -> None:
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(VMOT_ON, GPIO.OUT, initial=0)
         GPIO.setup(CHRG_SENSE, GPIO.IN)
@@ -102,7 +101,7 @@ class PantherHardware:
         GPIO.setup(DRIVER_EN, GPIO.OUT, initial=0)
         GPIO.setup(E_STOP_RESET, GPIO.IN)  # USED AS I/O
 
-    def motor_start_sequence(self) -> None:
+    def _motor_start_sequence(self) -> None:
         """
         First start sequence for motors which is meant to power up modules in correct order
         """
@@ -114,38 +113,38 @@ class PantherHardware:
 
         GPIO.output(AUX_PW_EN, 1)
 
-    def publish_e_stop_state(self, event=None) -> None:
+    def _publish_e_stop_state(self, event=None) -> None:
         msg = Bool()
-        msg.data = self.read_e_stop_pin()
-        self.e_stop_state_pub.publish(msg)
+        msg.data = self._read_e_stop_pin()
+        self._e_stop_state_pub.publish(msg)
 
-    def publish_charger_state(self, event=None) -> None:
+    def _publish_charger_state(self, event=None) -> None:
         msg = Bool()
         msg.data = GPIO.input(CHRG_SENSE)
-        self.charger_state_pub.publish(msg)
+        self._charger_state_pub.publish(msg)
 
-    def handle_aux_power_enable(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self.handle_set_bool_srv(req, AUX_PW_EN, "Aux power enable")
+    def _aux_power_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
+        return self._handle_set_bool_srv(req, AUX_PW_EN, "Aux power enable")
 
-    def handle_charger_enable(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self.handle_set_bool_srv(req, CHRG_EN, "Charger enable")
+    def _charger_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
+        return self._handle_set_bool_srv(req, CHRG_EN, "Charger enable")
 
-    def handle_digital_power_disable(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self.handle_set_bool_srv(req, VDIG_OFF, "Digital power disable")
+    def _digital_power_disable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
+        return self._handle_set_bool_srv(req, VDIG_OFF, "Digital power disable")
 
-    def handle_motors_enable(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self.handle_set_bool_srv(req, DRIVER_EN, "Motors driver enable")
+    def _motors_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
+        return self._handle_set_bool_srv(req, DRIVER_EN, "Motors driver enable")
 
-    def handle_fan_enable(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self.handle_set_bool_srv(req, FAN_SW, "Fan enable")
+    def _fan_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
+        return self._handle_set_bool_srv(req, FAN_SW, "Fan enable")
 
-    def handle_e_stop_trigger(self, req: TriggerRequest) -> TriggerResponse:
+    def _e_stop_trigger_cb(self, req: TriggerRequest) -> TriggerResponse:
         self._watchdog.turn_off()
         return TriggerResponse(True, f"E-STOP triggered, watchdog turned off")
 
-    def handle_e_stop_reset(self, req: TriggerRequest) -> TriggerResponse:
+    def _e_stop_reset_cb(self, req: TriggerRequest) -> TriggerResponse:
         # Read value before reset
-        e_stop_initial_val = self.read_e_stop_pin()
+        e_stop_initial_val = self._read_e_stop_pin()
 
         # Check if E-STOP reset is needed
         if e_stop_initial_val == False:
@@ -157,7 +156,7 @@ class PantherHardware:
         GPIO.setup(E_STOP_RESET, GPIO.OUT)
 
         # Perform reset
-        success = self.write_and_validate_gpio(True, E_STOP_RESET, "E-STOP reset")
+        success = self._write_and_validate_gpio(True, E_STOP_RESET, "E-STOP reset")
         self._watchdog.turn_on()
         time.sleep(0.1)
 
@@ -165,7 +164,7 @@ class PantherHardware:
         GPIO.setup(E_STOP_RESET, GPIO.IN)
 
         # Check if E-STOP reset succeeded
-        e_stop_val = self.read_e_stop_pin()
+        e_stop_val = self._read_e_stop_pin()
 
         # Send correct response
         if e_stop_initial_val == e_stop_val or not success:
@@ -179,8 +178,8 @@ class PantherHardware:
         response = TriggerResponse(success, msg)
         return response
 
-    def handle_set_bool_srv(self, request, pin, name) -> SetBoolResponse:
-        success = self.write_and_validate_gpio(request.data, pin, name)
+    def _handle_set_bool_srv(self, request, pin, name) -> SetBoolResponse:
+        success = self._write_and_validate_gpio(request.data, pin, name)
         msg = ""
         if success:
             msg = f"{name} write {request.data} successful"
@@ -189,7 +188,7 @@ class PantherHardware:
 
         return SetBoolResponse(success, msg)
 
-    def write_and_validate_gpio(self, value: bool, pin: int, name: str) -> bool:
+    def _write_and_validate_gpio(self, value: bool, pin: int, name: str) -> bool:
         rospy.logdebug(f"Requested {name} = {value}")
 
         # Try to write to pin
@@ -205,7 +204,7 @@ class PantherHardware:
         else:
             return False
 
-    def read_e_stop_pin(self) -> bool:
+    def _read_e_stop_pin(self) -> bool:
         """
         Function designed to ensure that reverse logic of E-STOP reading is used
         """
