@@ -12,6 +12,7 @@ from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 
 from pinout import *
 
+
 class Watchdog:
     def __init__(self) -> None:
         self._watchdog_on = False
@@ -143,7 +144,7 @@ class PantherHardware:
         if self._validate_gpio_pin(E_STOP_RESET, True):
             return TriggerResponse(
                 False,
-                "E-STOP reset not successful, state unchanged, check for pressed E-STOP buttons or other sources"
+                "E-STOP reset not successful, state unchanged, check for pressed E-STOP buttons or other sources",
             )
 
         return TriggerResponse(True, "E-STOP reset successful")
@@ -162,7 +163,6 @@ class PantherHardware:
         rospy.logdebug(f"Requested {name} = {value}")
         self._write_to_pin(pin, value)
         success = self._validate_gpio_pin(pin, value)
-
         msg = f"{name} write {value} failed"
         if success:
             msg = f"{name} write {value} successful"
@@ -186,7 +186,7 @@ class PantherHardware:
         """
         if pin in inverse_logic_pins:
             GPIO.output(pin, not value)
-            return 
+            return
         GPIO.output(pin, value)
 
 
