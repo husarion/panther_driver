@@ -95,22 +95,22 @@ class PantherHardware:
         """
         First start sequence for motors which is meant to power up modules in correct order
         """
-        GPIO.output(VMOT_ON, 1)
+        self._write_to_pin(VMOT_ON, 1)
         time.sleep(0.5)
 
-        GPIO.output(DRIVER_EN, 1)
+        self._write_to_pin(DRIVER_EN, 1)
         time.sleep(0.2)
 
-        GPIO.output(AUX_PW_EN, 1)
+        self._write_to_pin(AUX_PW_EN, 1)
 
     def _publish_e_stop_state(self, event=None) -> None:
         msg = Bool()
-        msg.data = self._read_e_stop_pin()
+        msg.data = self._read_pin(E_STOP_RESET)
         self._e_stop_state_pub.publish(msg)
 
     def _publish_charger_state(self, event=None) -> None:
         msg = Bool()
-        msg.data = GPIO.input(CHRG_SENSE)
+        msg.data = self._read_pin(CHRG_SENSE)
         self._charger_state_pub.publish(msg)
 
     def _aux_power_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
@@ -120,7 +120,7 @@ class PantherHardware:
         return self._handle_set_bool_srv(req.data, CHRG_EN, "Charger enable")
 
     def _digital_power_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self._handle_set_bool_srv(not req.data, VDIG_OFF, "Digital power enable")
+        return self._handle_set_bool_srv(req.data, VDIG_OFF, "Digital power enable")
 
     def _motors_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
         return self._handle_set_bool_srv(req.data, DRIVER_EN, "Motors driver enable")
@@ -133,33 +133,34 @@ class PantherHardware:
         return TriggerResponse(True, f"E-STOP triggered, watchdog turned off")
 
     def _e_stop_reset_cb(self, req: TriggerRequest) -> TriggerResponse:
-        if self._validate_e_stop_pin(False):
+        if self._validate_gpio_pin(E_STOP_RESET, False):
             return TriggerResponse(
-                False, "E-STOP was not triggered, reset is not needed"
+                True, "E-STOP was not triggered, reset is not needed"
             )
 
         self._reset_e_stop()
 
-        if self._validate_e_stop_pin(True):
+        if self._validate_gpio_pin(E_STOP_RESET, True):
             return TriggerResponse(
                 False,
                 "E-STOP reset not successful, state unchanged, check for pressed E-STOP buttons or other sources"
             )
 
-        return TriggerResponse(False, "E-STOP reset successful")
+        return TriggerResponse(True, "E-STOP reset successful")
 
     def _reset_e_stop(self) -> None:
         GPIO.setup(E_STOP_RESET, GPIO.OUT)
         self._watchdog.turn_on()
 
-        GPIO.output(E_STOP_RESET, True)
+        # Sending False because of inverse logic
+        self._write_to_pin(E_STOP_RESET, False)
         time.sleep(0.1)
 
         GPIO.setup(E_STOP_RESET, GPIO.IN)
 
     def _handle_set_bool_srv(self, value: bool, pin: int, name: str) -> SetBoolResponse:
         rospy.logdebug(f"Requested {name} = {value}")
-        GPIO.output(pin, value)
+        self._write_to_pin(pin, value)
         success = self._validate_gpio_pin(pin, value)
 
         msg = f"{name} write {value} failed"
@@ -169,20 +170,24 @@ class PantherHardware:
         return SetBoolResponse(success, msg)
 
     def _validate_gpio_pin(self, pin: int, value: bool) -> bool:
-        if GPIO.input(pin) == value:
-            return True
-        return False
+        return self._read_pin(pin) == value
 
-    def _validate_e_stop_pin(self, value: bool) -> bool:
-        if self._read_e_stop_pin() == value:
-            return True
-        return False
+    def _read_pin(self, pin: int) -> bool:
+        """
+        Wrapper for GPIO.input() designed to ensure that reverse logic of some pins is used
+        """
+        if pin in inverse_logic_pins:
+            return not GPIO.input(pin)
+        return GPIO.input(pin)
 
-    def _read_e_stop_pin(self) -> bool:
+    def _write_to_pin(self, pin: int, value: bool) -> None:
         """
-        Function designed to ensure that reverse logic of E-STOP reading is used
+        Wrapper for GPIO.output() designed to ensure that reverse logic of some pins is used
         """
-        return not GPIO.input(E_STOP_RESET)
+        if pin in inverse_logic_pins:
+            GPIO.output(pin, not value)
+            return 
+        GPIO.output(pin, value)
 
 
 if __name__ == "__main__":

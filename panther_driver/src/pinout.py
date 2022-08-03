@@ -15,3 +15,6 @@ CHRG_EN = 19        # Enable charger
 VDIG_OFF = 21       # Turn the digital power off eg. NUC, Router etc. (1 - off)
 DRIVER_EN = 23      # Enable motor drivers (1 - on)
 E_STOP_RESET = 27   # Works as IN/OUT, IN - gives info if E-stop in on (1 - off), OUT - send 1 to reset estop
+
+# define inverse logic pins here to be used by _read_pin() method
+inverse_logic_pins = [VDIG_OFF, E_STOP_RESET]
