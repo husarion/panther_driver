@@ -81,7 +81,8 @@ class PantherHardware:
 
         rospy.spin()
 
-    def _setup_gpio(self) -> None:
+    @staticmethod
+    def _setup_gpio() -> None:
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(VMOT_ON, GPIO.OUT, initial=0)
         GPIO.setup(CHRG_SENSE, GPIO.IN)
@@ -136,7 +137,7 @@ class PantherHardware:
     def _e_stop_reset_cb(self, req: TriggerRequest) -> TriggerResponse:
         if self._validate_gpio_pin(E_STOP_RESET, False):
             return TriggerResponse(
-                True, "E-STOP was not triggered, reset is not needed"
+                True, "E-STOP is not active, reset is not needed"
             )
 
         self._reset_e_stop()
@@ -144,7 +145,7 @@ class PantherHardware:
         if self._validate_gpio_pin(E_STOP_RESET, True):
             return TriggerResponse(
                 False,
-                "E-STOP reset not successful, state unchanged, check for pressed E-STOP buttons or other sources",
+                "E-STOP reset failed, check for pressed E-STOP buttons or other triggers",
             )
 
         return TriggerResponse(True, "E-STOP reset successful")
@@ -172,7 +173,8 @@ class PantherHardware:
     def _validate_gpio_pin(self, pin: int, value: bool) -> bool:
         return self._read_pin(pin) == value
 
-    def _read_pin(self, pin: int) -> bool:
+    @staticmethod
+    def _read_pin(pin: int) -> bool:
         """
         Wrapper for GPIO.input() designed to ensure that reverse logic of some pins is used
         """
@@ -180,7 +182,8 @@ class PantherHardware:
             return not GPIO.input(pin)
         return GPIO.input(pin)
 
-    def _write_to_pin(self, pin: int, value: bool) -> None:
+    @staticmethod
+    def _write_to_pin(pin: int, value: bool) -> None:
         """
         Wrapper for GPIO.output() designed to ensure that reverse logic of some pins is used
         """
