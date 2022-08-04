@@ -7,6 +7,7 @@ services:
     network_mode: host
     ipc: host
     restart: always
+    privileged: true
     tty: true
     environment:
       - ROS_IP=10.15.20.2
@@ -18,9 +19,9 @@ services:
       - PANTHER_IMU_ORIENTATION_R
       - PANTHER_IMU_ORIENTATION_P
       - PANTHER_IMU_ORIENTATION_Y
-    privileged: true
     volumes:
-      - /sys/bus/iio/devices:/sys/bus/iio/devices
+      - /dev/gpiomem:/dev/gpiomem
+      - /sys:/sys
     command: roslaunch panther_driver driver.launch --wait
 
   ros_master:
