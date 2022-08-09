@@ -1,12 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
+
 import math
+
 import rospy
-from sensor_msgs.msg import BatteryState
-from sensor_msgs.msg import JointState
-from geometry_msgs.msg import Twist
-from geometry_msgs.msg import Pose
-from geometry_msgs.msg import TransformStamped
-import tf2_ros
 
 class PantherKinematics():
     def __init__(self):
@@ -17,6 +13,7 @@ class PantherKinematics():
         self.robot_length = 0
         self.wheel_radius = 0  # Distance of the wheel center, to the roller center
         self.encoder_resolution = 0
+        self.gear_ratio = 0
         self.FR_enc_speed = 0  # front right encoder speed
         self.FL_enc_speed = 0
         self.RR_enc_speed = 0
@@ -28,7 +25,7 @@ class PantherKinematics():
         self.scale_factor_x = 0.25
         self.scale_factor_y = 0.25
         self.scale_factor_th = 0.125
-        self.cmd_vel_command_time = rospy.Time()
+        self.cmd_vel_command_time = rospy.Time.now()
 
     def cmdVelCallback(self, data):
         # forward kinematics
@@ -49,13 +46,13 @@ class PantherKinematics():
     def _getMotorSpeed(self, wheel_front_right, wheel_front_left, wheel_rear_right, wheel_rear_left):
 
         FR_enc_speed = self.power_factor * float(wheel_front_right) * float(
-            self.encoder_resolution) / (2 * math.pi)  # motor power / cmd cango
+            self.encoder_resolution * self.gear_ratio) / (2 * math.pi)  # motor power / cmd cango
         FL_enc_speed = self.power_factor * float(wheel_front_left) * float(
-            self.encoder_resolution) / (2 * math.pi)  # motor power / cmd cango
+            self.encoder_resolution * self.gear_ratio) / (2 * math.pi)  # motor power / cmd cango
         RR_enc_speed = self.power_factor * float(wheel_rear_right) * float(
-            self.encoder_resolution) / (2 * math.pi)  # motor power / cmd cango
+            self.encoder_resolution * self.gear_ratio) / (2 * math.pi)  # motor power / cmd cango
         RL_enc_speed = self.power_factor * float(wheel_rear_left) * float(
-            self.encoder_resolution) / (2 * math.pi)  # motor power / cmd cango
+            self.encoder_resolution * self.gear_ratio) / (2 * math.pi)  # motor power / cmd cango
 
         # limit max power to 1000
         if abs(FR_enc_speed) > 1000:
