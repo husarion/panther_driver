@@ -3,7 +3,7 @@ name: Build/Publish Docker Image
 on:
   push:
     branches:
-      - 'docker-dev'
+      - 'ros1'
   workflow_dispatch:
     inputs:
       tag:
