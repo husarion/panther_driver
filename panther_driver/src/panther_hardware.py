@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 
 import time
+import paramiko
+import threading
 
 import RPi.GPIO as GPIO
-from gpiozero import PWMOutputDevice
+from gpiozero import PWMOutputDevice, Button
 import rospy
 
 from std_msgs.msg import Bool
@@ -35,6 +37,11 @@ class PantherHardware:
     def __init__(self) -> None:
         self._setup_gpio()
         self._motor_start_sequence()
+
+        self.soft_stop_thread = threading.Thread(
+            name="soft stop proc", target=self.soft_stop
+        )
+        self.soft_stop_thread.start()
 
         self._watchdog = Watchdog()
         self._watchdog.turn_on()
@@ -93,6 +100,26 @@ class PantherHardware:
         GPIO.setup(DRIVER_EN, GPIO.OUT, initial=0)
         GPIO.setup(E_STOP_RESET, GPIO.IN)  # USED AS I/O
 
+    @staticmethod
+    def _shutdown_host() -> None:
+        # EXAMPLE: https://www.linode.com/docs/guides/use-paramiko-python-to-ssh-into-a-server/
+        host = "10.15.20.2"
+        username = "husarion"
+
+        pkey = paramiko.RSAKey.from_private_key_file("/root/.ssh/id_rsa")
+        client = paramiko.SSHClient()
+        policy = paramiko.AutoAddPolicy()
+        client.set_missing_host_key_policy(policy)
+        client.connect(host, username=username, pkey=pkey)
+        _stdin, _stdout, _stderr = client.exec_command("sudo shutdown now")
+        print(_stdout.read().decode())
+        client.close()
+
+    def soft_stop(self):
+        button = Button(SHDN_INIT, pull_up=False)
+        button.wait_for_press()
+        self._shutdown_host()
+
     def _motor_start_sequence(self) -> None:
         """
         First start sequence for motors which is meant to power up modules in correct order
@@ -136,9 +163,7 @@ class PantherHardware:
 
     def _e_stop_reset_cb(self, req: TriggerRequest) -> TriggerResponse:
         if self._validate_gpio_pin(E_STOP_RESET, False):
-            return TriggerResponse(
-                True, "E-STOP is not active, reset is not needed"
-            )
+            return TriggerResponse(True, "E-STOP is not active, reset is not needed")
 
         self._reset_e_stop()
 
