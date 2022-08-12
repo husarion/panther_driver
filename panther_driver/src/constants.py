@@ -18,3 +18,7 @@ E_STOP_RESET = 27   # Works as IN/OUT, IN - gives info if E-stop in on (1 - off)
 
 # define inverse logic pins here to be used by _read_pin() method
 inverse_logic_pins = [VDIG_OFF, E_STOP_RESET]
+
+# Hostame and IP
+IP = "127.0.0.1"
+USERNAME = "husarion"

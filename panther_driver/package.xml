@@ -18,6 +18,8 @@
   <build_export_depend>roscpp</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
+  <exec_depend>gpiozero</exec_depend>
+  <exec_depend>paramiko</exec_depend>
 
   <export>
 

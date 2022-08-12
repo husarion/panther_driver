@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-import time
 import paramiko
+import time
 import threading
 
 import RPi.GPIO as GPIO
@@ -12,7 +12,7 @@ from std_msgs.msg import Bool
 from std_srvs.srv import SetBool, SetBoolRequest, SetBoolResponse
 from std_srvs.srv import Trigger, TriggerRequest, TriggerResponse
 
-from pinout import *
+from constants import *
 
 
 class Watchdog:
@@ -38,10 +38,10 @@ class PantherHardware:
         self._setup_gpio()
         self._motor_start_sequence()
 
-        self.soft_stop_thread = threading.Thread(
-            name="soft stop proc", target=self.soft_stop
+        self.soft_shutdown_thread = threading.Thread(
+            name="Soft shutdown proc", target=self._soft_shutdown
         )
-        self.soft_stop_thread.start()
+        self.soft_shutdown_thread.start()
 
         self._watchdog = Watchdog()
         self._watchdog.turn_on()
@@ -99,27 +99,7 @@ class PantherHardware:
         GPIO.setup(VDIG_OFF, GPIO.OUT, initial=0)
         GPIO.setup(DRIVER_EN, GPIO.OUT, initial=0)
         GPIO.setup(E_STOP_RESET, GPIO.IN)  # USED AS I/O
-
-    @staticmethod
-    def _shutdown_host() -> None:
-        # EXAMPLE: https://www.linode.com/docs/guides/use-paramiko-python-to-ssh-into-a-server/
-        host = "10.15.20.2"
-        username = "husarion"
-
-        pkey = paramiko.RSAKey.from_private_key_file("/root/.ssh/id_rsa")
-        client = paramiko.SSHClient()
-        policy = paramiko.AutoAddPolicy()
-        client.set_missing_host_key_policy(policy)
-        client.connect(host, username=username, pkey=pkey)
-        _stdin, _stdout, _stderr = client.exec_command("sudo shutdown now")
-        print(_stdout.read().decode())
-        client.close()
-
-    def soft_stop(self):
-        button = Button(SHDN_INIT, pull_up=False)
-        button.wait_for_press()
-        self._shutdown_host()
-
+    
     def _motor_start_sequence(self) -> None:
         """
         First start sequence for motors which is meant to power up modules in correct order
@@ -131,6 +111,25 @@ class PantherHardware:
         time.sleep(0.2)
 
         self._write_to_pin(AUX_PW_EN, 1)
+
+
+    @staticmethod
+    def _shutdown_host() -> None:
+        # EXAMPLE: https://www.linode.com/docs/guides/use-paramiko-python-to-ssh-into-a-server/
+
+        pkey = paramiko.RSAKey.from_private_key_file("/root/.ssh/id_rsa")
+        client = paramiko.SSHClient()
+        policy = paramiko.AutoAddPolicy()
+        client.set_missing_host_key_policy(policy)
+        client.connect(IP, username=USERNAME, pkey=pkey)
+        _stdin, _stdout, _stderr = client.exec_command("sudo shutdown now")
+        print(_stdout.read().decode())
+        client.close()
+
+    def _soft_shutdown(self):
+        button = Button(SHDN_INIT, pull_up=False)
+        button.wait_for_press()
+        self._shutdown_host()
 
     def _publish_e_stop_state(self, event=None) -> None:
         msg = Bool()
