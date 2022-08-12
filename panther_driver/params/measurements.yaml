@@ -6,9 +6,14 @@ BAT1_voltage:
   LSB: 0.02504255
   unit: "V"
 
-IDIG_current: 
+BAT2_current: 
+  path: "/sys/bus/iio/devices/iio:device1/in_voltage1_raw"
+  LSB: 0.002
+  unit: "V"
+
+BAT1_current: 
   path: "/sys/bus/iio/devices/iio:device1/in_voltage2_raw"
-  LSB: 0.0133
+  LSB: 0.002
   unit: "V"
 
 BAT2_voltage: 

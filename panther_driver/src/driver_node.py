@@ -116,6 +116,15 @@ def voltage_to_deg(V_temp):
     # rospy.loginfo(f"U_meas={V_temp}, R_therm={R_therm}")
     return (A*B / (A*math.log(R_therm/R0)+B)) - 273.15
 
+def voltage_to_current(V_I_bat):
+    """
+    Function to calculate battery current from voltage read ba ADC I_bat measurement
+    """
+    U_offset = 1.25
+    gain = 100
+    Rs = 0.0005
+    return (V_I_bat - U_offset) / (gain * Rs)
+
 def driverNode():
 
     rospy.init_node("panther_driver", anonymous=False)
@@ -268,7 +277,8 @@ def driverNode():
                 V_temp_bat2 = get_ADC_measurement("BAT2_temp", config_file)
                 Icharge_bat1 = get_ADC_measurement("BAT1_charge_current", config_file)
                 Icharge_bat2 = get_ADC_measurement("BAT2_charge_current", config_file)
-                Idig = get_ADC_measurement("IDIG_current", config_file)
+                V_I_bat1= get_ADC_measurement("BAT1_current", config_file)
+                V_I_bat2= get_ADC_measurement("BAT2_current", config_file)
             except:
                 rospy.logerr(f"[{rospy.get_name()}] Battery ADC measurement error excep")
 
@@ -281,11 +291,10 @@ def driverNode():
                     # Calculate Temp in deg of Celcius
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
 
-                    Ibat1 =  -1 * ( Idriv1 + Idriv2 + Idig - Icharge_bat1)
+                    Ibat1 =  voltage_to_current(V_I_bat1)
 
-                    rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG: Idig={Idig}, " +
-                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
-                        f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}")
+                    rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:" +
+                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, V_I_bat1={V_I_bat1}, Ibat1={Ibat1}, temp_bat1={temp_bat1}")
 
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
                     publish_battery_msg(battery2_publisher, False)
@@ -296,25 +305,12 @@ def driverNode():
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
                     temp_bat2 = voltage_to_deg(V_temp_bat2)
 
-                    V_diff = V_bat1 - V_bat2
+                    Ibat1 =  voltage_to_current(V_I_bat1)
+                    Ibat2 =  voltage_to_current(V_I_bat2)
 
-                    if abs(V_diff) <= 0.2:
-                        k = 0.5
-                    elif V_diff > 0.2:
-                        k = 1
-                    elif V_diff < -0.2:
-                        k = 0
-                    else:
-                        rospy.logger(f"[{rospy.get_name()}] V_difff out of range")
-
-                    Ibat1 = -1 * ( Idriv1 + (k * Idig) - Icharge_bat1)
-                    Ibat2 = -1 * ( Idriv2 + ((1-k) * Idig) - Icharge_bat2 )
-
-                    # rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG: k={k}, Idig={Idig}, " +
-                    #     f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
-                    #     f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}, " +
-                    #     f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}, " +
-                    #     f"V_bat2={V_bat2}, V_temp_bat2={V_temp_bat2}, temp_bat2={temp_bat2}, Ibat2={Ibat2}")
+                    rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:\n" +
+                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, V_I_bat1={V_I_bat1}, Ibat1={Ibat1}, temp_bat1={temp_bat1} \n" +
+                        f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}, V_I_bat2={V_I_bat2}, Ibat2={Ibat2}, temp_bat2={temp_bat2}")
 
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
                     publish_battery_msg(battery2_publisher, True, V_bat2, temp_bat2, Ibat2)
