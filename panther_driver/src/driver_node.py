@@ -52,70 +52,6 @@ def euler_to_quaternion(yaw, pitch, roll):
     return [qx, qy, qz, qw]
 
 
-def read_file(path):
-    with open(path, "r") as file:
-        data = file.read().rstrip()
-
-    file.close()
-
-    return int(data)
-
-def get_ADC_measurement(name: str, config_file):
-    data = config_file[name]
-    path = data["path"]
-    raw_value = read_file(path)
-    value = raw_value * data["LSB"]
-
-    return value
-
-def publish_battery_msg(bat_pub, present, V_bat=NaN, temp_bat=NaN, Ibat=NaN):
-    battery_msg = BatteryState()
-    if present:
-        battery_msg.header.stamp=rospy.Time.now()
-        battery_msg.voltage=V_bat
-        battery_msg.temperature=temp_bat
-        battery_msg.current=Ibat
-        battery_msg.percentage=(battery_msg.voltage-32)/10
-        battery_msg.capacity=20
-        battery_msg.design_capacity=20
-        battery_msg.charge=battery_msg.percentage*battery_msg.design_capacity
-        battery_msg.power_supply_status
-        battery_msg.power_supply_health
-        battery_msg.power_supply_technology=3
-        battery_msg.present=True
-    else:
-        battery_msg.header.stamp=rospy.Time.now()
-        battery_msg.voltage=NaN
-        battery_msg.temperature=NaN
-        battery_msg.current=NaN
-        battery_msg.percentage=NaN
-        battery_msg.capacity=NaN
-        battery_msg.design_capacity=NaN
-        battery_msg.charge=NaN
-        battery_msg.power_supply_status
-        battery_msg.power_supply_health
-        battery_msg.power_supply_technology=3
-        battery_msg.present=False
-
-    bat_pub.publish(battery_msg)
-    
-def voltage_to_deg(V_temp):
-    # Source: https://electronics.stackexchange.com/questions/323043/how-to-calculate-temperature-through-ntc-thermistor-without-its-datasheet
-    A = 298.15
-    B = 3950
-    U_supply = 3.28
-    R1 = 10000
-    R0 = 10000
-
-    if  V_temp == 0 or V_temp >= U_supply:
-        print("Temperature measurement error")
-        return NaN
-
-    R_therm = (V_temp * R1) / (U_supply - V_temp)
-
-    # rospy.loginfo(f"U_meas={V_temp}, R_therm={R_therm}")
-    return (A*B / (A*math.log(R_therm/R0)+B)) - 273.15
-
 def driverNode():
 
     rospy.init_node("panther_driver", anonymous=False)
@@ -130,24 +66,8 @@ def driverNode():
     RK = factory(kinematics_type)
     br = tf2_ros.TransformBroadcaster()
     tf = TransformStamped()
-
-    # Battery
-    battery_publisher = rospy.Publisher("battery", BatteryState, queue_size=1)
-    battery1_publisher = rospy.Publisher("battery1", BatteryState, queue_size=1)
-    battery2_publisher = rospy.Publisher("battery2", BatteryState, queue_size=1)    
-
-    if rospy.has_param("~measurements_file"):
-        measurements_file = rospy.get_param("~measurements_file")
-    else:
-        rospy.logerr(f"[{rospy.get_name()}] measurements_file not defined, can not start collecting ADC measurements")
-        return
-
-    with open(measurements_file, "r") as stream:
-        try:
-            config_file = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-    # --
+    battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
+    battery_msg = BatteryState()
 
     joint_state_publisher = rospy.Publisher(
         "joint_states", JointState, queue_size=1)
@@ -217,9 +137,6 @@ def driverNode():
 
     last_time = rospy.Time.now()
 
-    # VARIABLE FOR ERROR TRACKING
-    err_count = 0
-
     while not rospy.is_shutdown():
         try:
             rospy.get_master().getPid()
@@ -254,83 +171,8 @@ def driverNode():
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error while writing to rear right Cmd_CANGO")
 
-            # Get battery Data
             try:
-                Idriv1 = float(front_controller.sdo["Qry_BATAMPS"][1].raw)/10
-                Idriv2 = float(rear_controller.sdo["Qry_BATAMPS"][1].raw)/10
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error getting battery data from CAN")
-
-            try:
-                V_bat1 = get_ADC_measurement("BAT1_voltage", config_file)
-                V_bat2 = get_ADC_measurement("BAT2_voltage", config_file)
-                V_temp_bat1 = get_ADC_measurement("BAT1_temp", config_file)
-                V_temp_bat2 = get_ADC_measurement("BAT2_temp", config_file)
-                Icharge_bat1 = get_ADC_measurement("BAT1_charge_current", config_file)
-                Icharge_bat2 = get_ADC_measurement("BAT2_charge_current", config_file)
-                Idig = get_ADC_measurement("IDIG_current", config_file)
-            except:
-                rospy.logerr(f"[{rospy.get_name()}] Battery ADC measurement error excep")
-
-            # Try Calculate and publish BAT data
-            try: 
-                # Check battery num
-                if V_temp_bat2 > 3.2: # ONE Battery
-                    # rospy.loginfo(f"[{rospy.get_name()}] One bat detected")
-
-                    # Calculate Temp in deg of Celcius
-                    temp_bat1 = voltage_to_deg(V_temp_bat1)
-
-                    Ibat1 =  -1 * ( Idriv1 + Idriv2 + Idig - Icharge_bat1)
-
-                    rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG: Idig={Idig}, " +
-                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
-                        f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}")
-
-                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
-                    publish_battery_msg(battery2_publisher, False)
-                else:
-                    # rospy.loginfo(f"[{rospy.get_name()}] Two bat detected")
-
-                    # Calculate Temp in deg of Celcius
-                    temp_bat1 = voltage_to_deg(V_temp_bat1)
-                    temp_bat2 = voltage_to_deg(V_temp_bat2)
-
-                    V_diff = V_bat1 - V_bat2
-
-                    if abs(V_diff) <= 0.2:
-                        k = 0.5
-                    elif V_diff > 0.2:
-                        k = 1
-                    elif V_diff < -0.2:
-                        k = 0
-                    else:
-                        rospy.logger(f"[{rospy.get_name()}] V_difff out of range")
-
-                    Ibat1 = -1 * ( Idriv1 + (k * Idig) - Icharge_bat1)
-                    Ibat2 = -1 * ( Idriv2 + ((1-k) * Idig) - Icharge_bat2 )
-
-                    # rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG: k={k}, Idig={Idig}, " +
-                    #     f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
-                    #     f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}, " +
-                    #     f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}, " +
-                    #     f"V_bat2={V_bat2}, V_temp_bat2={V_temp_bat2}, temp_bat2={temp_bat2}, Ibat2={Ibat2}")
-
-                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
-                    publish_battery_msg(battery2_publisher, True, V_bat2, temp_bat2, Ibat2)
-
-                    V_bat_avereage = (V_bat1+V_bat2)/2
-                    temp_average = (temp_bat1+temp_bat2)/2
-                    I_bat_average = (Ibat1+Ibat2)/2
-
-                    publish_battery_msg(battery_publisher, True, V_bat_avereage, temp_average, I_bat_average)
-            except:
-                rospy.logerr(f"[{rospy.get_name()}] Error Calculating and publishing bat data")
-
-
-            # query position
-            try:
-                wheel_pos[0] = front_controller.sdo["Qry_ABCNTR"][2].raw
+                front_controller.sdo['Cmd_CANGO'][2].raw = RK.FL_enc_speed
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error reading front left controller sdo")
             try:
@@ -364,7 +206,6 @@ def driverNode():
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error reading rear right controller sdo")
 
-
             # query current
             # division by 10 is needed according to documentation
             try:
@@ -384,7 +225,6 @@ def driverNode():
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error reading current rear right controller sdo")
 
-
             joint_state_msg.header.stamp = rospy.Time.now()
 
             # convert tics to rad
@@ -396,6 +236,16 @@ def driverNode():
                wheel_curr[i] * motor_torque_constant * sign(wheel_vel[i]) for i in range(len(wheel_curr))]
 
             joint_state_publisher.publish(joint_state_msg)
+
+            # Publish battery data
+            try:
+                battery_msg.voltage = float(
+                    front_controller.sdo[0x210D][2].raw)/10
+                battery_msg.current = float(
+                    front_controller.sdo['Qry_BATAMPS'][1].raw)/10
+                battery_publisher.publish(battery_msg)
+            except:
+                rospy.logwarn("Error getting battery data")
 
             try:
                 robot_x_pos, robot_y_pos, robot_th_pos = RK.inverseKinematics(
@@ -443,11 +293,8 @@ def driverNode():
                 odom_msg.twist.twist.angular.z = 0
                 odom_publisher.publish(odom_msg)
 
-        except Exception as e:
-            rospy.logerr(f"[{rospy.get_name()}] Error: {e}")
-            err_count+=1
-            if err_count >= 10:
-                return
+        except:
+            rospy.logerr("CAN protocol error")
 
         rate.sleep()
 
