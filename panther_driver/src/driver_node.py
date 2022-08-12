@@ -267,6 +267,8 @@ def driverNode():
             try:
                 Idriv1 = float(front_controller.sdo["Qry_BATAMPS"][1].raw)/10
                 Idriv2 = float(rear_controller.sdo["Qry_BATAMPS"][1].raw)/10
+                V_driv1 = float(front_controller.sdo[0x210D][2].raw)/10
+                V_driv2 = float(rear_controller.sdo[0x210D][2].raw)/10
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error getting battery data from CAN")
 
@@ -309,8 +311,10 @@ def driverNode():
                     Ibat2 =  voltage_to_current(V_I_bat2)
 
                     rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:\n" +
-                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, V_I_bat1={V_I_bat1}, Ibat1={Ibat1}, temp_bat1={temp_bat1} \n" +
-                        f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}, V_I_bat2={V_I_bat2}, Ibat2={Ibat2}, temp_bat2={temp_bat2}")
+                        f"Ibat1={Ibat1}, V_bat1={V_bat1}, Idriv1={Idriv1}, V_driv1={V_driv1}, Icharge_bat1={Icharge_bat1}, V_I_bat1={V_I_bat1}, temp_bat1={temp_bat1} \n" +
+                        f"Ibat2={Ibat2}, V_bat2={V_bat2}, Idriv2={Idriv2}, V_driv2={V_driv2}, Icharge_bat2={Icharge_bat2}, V_I_bat2={V_I_bat2}, temp_bat2={temp_bat2}")
+
+                    rospy.loginfo(f"CMD_VEL lin_x={RK.lin_x}, lin_y={RK.lin_y}, ang_z={RK.ang_z}")    
 
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
                     publish_battery_msg(battery2_publisher, True, V_bat2, temp_bat2, Ibat2)
