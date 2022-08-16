@@ -49,7 +49,7 @@ class PantherHardware:
         )
 
         self._charger_state_pub = rospy.Publisher(
-            "/panther_hardware/charger_sens", Bool, queue_size=1
+            "/panther_hardware/charger_connected", Bool, queue_size=1
         )
         self._timer_charger = rospy.Timer(
             rospy.Duration(0.5), self._publish_charger_state
