@@ -4,11 +4,9 @@
   <version>0.0.0</version>
   <description>The panther_driver package</description>
 
-  <maintainer email="lukasz.mitka@husarion.com">Łukasz Mitka</maintainer>
+  <maintainer email="contact@husarion.com">Husarion</maintainer>
 
-  <license>TODO</license>
-
-  <!-- <url type="website">http://wiki.ros.org/panther_driver</url> -->
+  <license>MIT</license>
 
   <author email="lukasz.mitka@husarion.com">Łukasz Mitka</author>
 
@@ -19,7 +17,4 @@
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
 
-  <export>
-
-  </export>
 </package>
