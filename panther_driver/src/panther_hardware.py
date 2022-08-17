@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 import paramiko
-import time
 import threading
+import time
 
 import RPi.GPIO as GPIO
 from gpiozero import PWMOutputDevice, Button
@@ -39,7 +39,7 @@ class PantherHardware:
         self._motor_start_sequence()
 
         self.soft_shutdown_thread = threading.Thread(
-            name="Soft shutdown proc", target=self._soft_shutdown
+            name="Soft shutdown thread", target=self._soft_shutdown
         )
         self.soft_shutdown_thread.start()
 
