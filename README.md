@@ -98,8 +98,6 @@ Slcan tool take `-sX` argument to set CAN bitrate. Below table contains valid va
 
     Enable/Disable joystick
     
-For kalman filter setup please refer to [panther_ekf](https://github.com/adamkrawczyk/panther_ekf)
-
 ## Setup autostart
 
 # Fix set_driver_startup.py
