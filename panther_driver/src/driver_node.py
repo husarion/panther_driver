@@ -64,7 +64,7 @@ def get_ADC_measurement(name: str, config_file):
     data = config_file[name]
     path = data["path"]
     raw_value = read_file(path)
-    value = raw_value * data["LSB"]
+    value = (raw_value-data["offset"]) * data["LSB"]
 
     return value
 
@@ -115,15 +115,6 @@ def voltage_to_deg(V_temp):
 
     # rospy.loginfo(f"U_meas={V_temp}, R_therm={R_therm}")
     return (A*B / (A*math.log(R_therm/R0)+B)) - 273.15
-
-def voltage_to_current(V_I_bat):
-    """
-    Function to calculate battery current from voltage read ba ADC I_bat measurement
-    """
-    U_offset = 1.25
-    gain = 100
-    Rs = 0.0005
-    return (V_I_bat - U_offset) / (gain * Rs)
 
 def driverNode():
 
@@ -277,10 +268,10 @@ def driverNode():
                 V_bat2 = get_ADC_measurement("BAT2_voltage", config_file)
                 V_temp_bat1 = get_ADC_measurement("BAT1_temp", config_file)
                 V_temp_bat2 = get_ADC_measurement("BAT2_temp", config_file)
-                Icharge_bat1 = get_ADC_measurement("BAT1_charge_current", config_file)
-                Icharge_bat2 = get_ADC_measurement("BAT2_charge_current", config_file)
-                V_I_bat1= get_ADC_measurement("BAT1_current", config_file)
-                V_I_bat2= get_ADC_measurement("BAT2_current", config_file)
+                I_charge_bat1 = get_ADC_measurement("BAT1_charge_current", config_file)
+                I_charge_bat2 = get_ADC_measurement("BAT2_charge_current", config_file)
+                I_bat1 = get_ADC_measurement("BAT1_current", config_file)
+                I_bat2 = get_ADC_measurement("BAT2_current", config_file)
             except:
                 rospy.logerr(f"[{rospy.get_name()}] Battery ADC measurement error excep")
 
@@ -293,12 +284,10 @@ def driverNode():
                     # Calculate Temp in deg of Celcius
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
 
-                    Ibat1 =  voltage_to_current(V_I_bat1)
-
                     rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:" +
-                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, V_I_bat1={V_I_bat1}, Ibat1={Ibat1}, temp_bat1={temp_bat1}")
+                        f"I_bat1={I_bat1:.2f}, Idriv1={Idriv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, I_bat1={I_bat1:.2f}, temp_bat1={temp_bat1:.2f}")
 
-                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
+                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, I_bat1)
                     publish_battery_msg(battery2_publisher, False)
                 else:
                     # rospy.loginfo(f"[{rospy.get_name()}] Two bat detected")
@@ -307,23 +296,21 @@ def driverNode():
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
                     temp_bat2 = voltage_to_deg(V_temp_bat2)
 
-                    Ibat1 =  voltage_to_current(V_I_bat1)
-                    Ibat2 =  voltage_to_current(V_I_bat2)
-
                     rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:\n" +
-                        f"Ibat1={Ibat1}, V_bat1={V_bat1}, Idriv1={Idriv1}, V_driv1={V_driv1}, Icharge_bat1={Icharge_bat1}, V_I_bat1={V_I_bat1}, temp_bat1={temp_bat1} \n" +
-                        f"Ibat2={Ibat2}, V_bat2={V_bat2}, Idriv2={Idriv2}, V_driv2={V_driv2}, Icharge_bat2={Icharge_bat2}, V_I_bat2={V_I_bat2}, temp_bat2={temp_bat2}")
+                        f"I_bat1={I_bat1:.2f}, V_bat1={V_bat1:.2f}, Idriv1={Idriv1:.2f}, V_driv1={V_driv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, temp_bat1={temp_bat1:.2f} \n" +
+                        f"I_bat2={I_bat2:.2f}, V_bat2={V_bat2:.2f}, Idriv2={Idriv2:.2f}, V_driv2={V_driv2:.2f}, I_charge_bat2={I_charge_bat2:.2f}, temp_bat2={temp_bat2:.2f}")
 
-                    rospy.loginfo(f"CMD_VEL lin_x={RK.lin_x}, lin_y={RK.lin_y}, ang_z={RK.ang_z}")    
+                    rospy.loginfo(f"CMD_VEL lin_x={RK.lin_x:.2f}, lin_y={RK.lin_y:.2f}, ang_z={RK.ang_z:.2f}")    
 
-                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
-                    publish_battery_msg(battery2_publisher, True, V_bat2, temp_bat2, Ibat2)
+                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, -I_bat1 + I_charge_bat1)
+                    publish_battery_msg(battery2_publisher, True, V_bat2, temp_bat2, -I_bat2 + I_charge_bat2)
 
                     V_bat_avereage = (V_bat1+V_bat2)/2
                     temp_average = (temp_bat1+temp_bat2)/2
-                    I_bat_average = (Ibat1+Ibat2)/2
+                    I_bat_average = (I_bat1+I_bat2)/2
+                    I_charge_bat_average = (I_charge_bat1+I_charge_bat2)/2
 
-                    publish_battery_msg(battery_publisher, True, V_bat_avereage, temp_average, I_bat_average)
+                    publish_battery_msg(battery_publisher, True, V_bat_avereage, temp_average, -I_bat_average + I_charge_bat_average)
             except:
                 rospy.logerr(f"[{rospy.get_name()}] Error Calculating and publishing bat data")
 
