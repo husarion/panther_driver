@@ -278,7 +278,7 @@ def driverNode():
             # Try Calculate and publish BAT data
             try: 
                 # Check battery num
-                if V_temp_bat2 > 3.2: # ONE Battery
+                if V_temp_bat2 > 3.03: # ONE Battery
                     # rospy.loginfo(f"[{rospy.get_name()}] One bat detected")
 
                     # Calculate Temp in deg of Celcius

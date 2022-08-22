@@ -7,6 +7,7 @@ SHELL ["/bin/bash", "-c"]
 RUN apt update \
     && apt upgrade -y \
     && apt install -y git \
+        openssh-server \
         python3-dev \
         python3-pip \
         python3-rospkg \
@@ -22,7 +23,8 @@ RUN pip3 install \
         rospkg \
         canopen \
         RPi.GPIO \
-        gpiozero
+        gpiozero \
+        paramiko
 
 WORKDIR /ros_ws
 

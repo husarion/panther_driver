@@ -9,7 +9,7 @@ VMOT_ON = 6         # Enable mamin power supply to motors (1 - on)
 CHRG_SENSE = 7      # Charger sensor (1 - charger plugged in)            
 WATCHDOG = 14       # Watchdog pin, if PWM is on tish pin Panther will work
 FAN_SW = 15         # Turn on the fan (1 - on)
-# SHDN_INIT = 16    # Shutdown Init managed by systemd service
+SHDN_INIT = 16      # Shutdown Init managed by systemd service
 AUX_PW_EN = 18      # Enable auxiliary power, eg. supply to robotic arms etc. 
 CHRG_EN = 19        # Enable charger
 VDIG_OFF = 21       # Turn the digital power off eg. NUC, Router etc. (1 - off)
@@ -18,3 +18,7 @@ E_STOP_RESET = 27   # Works as IN/OUT, IN - gives info if E-stop in on (1 - off)
 
 # define inverse logic pins here to be used by _read_pin() method
 inverse_logic_pins = [VDIG_OFF, E_STOP_RESET, CHRG_SENSE]
+
+# Hostame and IP
+IP = "127.0.0.1"
+USERNAME = "husarion"

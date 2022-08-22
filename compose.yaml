@@ -22,6 +22,7 @@ services:
     volumes:
       - /dev/gpiomem:/dev/gpiomem
       - /sys:/sys
+      - ~/.ssh/id_rsa:/root/.ssh/id_rsa
     command: roslaunch panther_driver driver.launch --wait
 
   ros_master:
