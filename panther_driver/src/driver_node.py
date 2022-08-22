@@ -284,8 +284,8 @@ def driverNode():
                     # Calculate Temp in deg of Celcius
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
 
-                    rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:" +
-                        f"I_bat1={I_bat1:.2f}, Idriv1={Idriv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, I_bat1={I_bat1:.2f}, temp_bat1={temp_bat1:.2f}")
+                    # rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:" +
+                    #     f"I_bat1={I_bat1:.2f}, Idriv1={Idriv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, I_bat1={I_bat1:.2f}, temp_bat1={temp_bat1:.2f}")
 
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, I_bat1)
                     publish_battery_msg(battery2_publisher, False)
@@ -296,11 +296,11 @@ def driverNode():
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
                     temp_bat2 = voltage_to_deg(V_temp_bat2)
 
-                    rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:\n" +
-                        f"I_bat1={I_bat1:.2f}, V_bat1={V_bat1:.2f}, Idriv1={Idriv1:.2f}, V_driv1={V_driv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, temp_bat1={temp_bat1:.2f} \n" +
-                        f"I_bat2={I_bat2:.2f}, V_bat2={V_bat2:.2f}, Idriv2={Idriv2:.2f}, V_driv2={V_driv2:.2f}, I_charge_bat2={I_charge_bat2:.2f}, temp_bat2={temp_bat2:.2f}")
+                    # rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:\n" +
+                    #     f"I_bat1={I_bat1:.2f}, V_bat1={V_bat1:.2f}, Idriv1={Idriv1:.2f}, V_driv1={V_driv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, temp_bat1={temp_bat1:.2f} \n" +
+                    #     f"I_bat2={I_bat2:.2f}, V_bat2={V_bat2:.2f}, Idriv2={Idriv2:.2f}, V_driv2={V_driv2:.2f}, I_charge_bat2={I_charge_bat2:.2f}, temp_bat2={temp_bat2:.2f}")
 
-                    rospy.loginfo(f"CMD_VEL lin_x={RK.lin_x:.2f}, lin_y={RK.lin_y:.2f}, ang_z={RK.ang_z:.2f}")    
+                    # rospy.loginfo(f"CMD_VEL lin_x={RK.lin_x:.2f}, lin_y={RK.lin_y:.2f}, ang_z={RK.ang_z:.2f}")    
 
                     publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, -I_bat1 + I_charge_bat1)
                     publish_battery_msg(battery2_publisher, True, V_bat2, temp_bat2, -I_bat2 + I_charge_bat2)
