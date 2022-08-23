@@ -64,7 +64,7 @@ def get_ADC_measurement(name: str, config_file):
     data = config_file[name]
     path = data["path"]
     raw_value = read_file(path)
-    value = (raw_value-data["offset"]) * data["LSB"]
+    value = (raw_value - data["offset"]) * data["LSB"]
 
     return value
 
@@ -256,10 +256,10 @@ def driverNode():
 
             # Get battery Data
             try:
-                Idriv1 = float(front_controller.sdo["Qry_BATAMPS"][1].raw)/10
-                Idriv2 = float(rear_controller.sdo["Qry_BATAMPS"][1].raw)/10
-                V_driv1 = float(front_controller.sdo[0x210D][2].raw)/10
-                V_driv2 = float(rear_controller.sdo[0x210D][2].raw)/10
+                Idriv1 = float(front_controller.sdo["Qry_BATAMPS"][1].raw) / 10
+                Idriv2 = float(rear_controller.sdo["Qry_BATAMPS"][1].raw) / 10
+                V_driv1 = float(front_controller.sdo[0x210D][2].raw) / 10
+                V_driv2 = float(rear_controller.sdo[0x210D][2].raw) / 10
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error getting battery data from CAN")
 
