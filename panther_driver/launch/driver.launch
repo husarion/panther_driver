@@ -2,6 +2,9 @@
     <arg name="kalman_params" default="true" doc="Enable/Disable kalman filter"/>
     <arg name="wheel" default="offroad" doc="Type of wheel. Possible: 'offroad', 'small_pneumatic', 'mecanum'"/>
 
+    <arg name="can_interface" default="panther_can" />
+    <arg name="eds_file" default="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds" />
+
     <!-- wheel definition -->
     <group if="$(eval wheel == 'offroad')">
         <include file="$(find panther_driver)/launch/panther_driver.launch">
@@ -33,6 +36,11 @@
     <include file="$(find panther_driver)/launch/imu.launch"/>
 
     <node pkg="panther_driver" name="panther_hardware" type="panther_hardware.py" output="screen" required="true"/>
+
+    <node pkg="panther_driver" name="baterry_node" type="battery_node.py" output="screen">
+        <param name="can_interface" type="string" value="$(arg can_interface)" />
+        <param name="eds_file" type="string" value="$(arg eds_file)" />
+    </node>
 
     <!-- TF FOR LIDAR SENSOR -->
     <node pkg="tf" type="static_transform_publisher" name="laser_link" args="0.39 0.0 0.19 3.14 0.0 0.0 base_link laser 100" />

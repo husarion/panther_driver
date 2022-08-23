@@ -2,8 +2,6 @@
 
 import canopen
 import math
-from numpy import NaN
-import yaml
 
 import rospy
 import tf2_ros
@@ -12,7 +10,6 @@ from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from sensor_msgs.msg import BatteryState
 from sensor_msgs.msg import JointState
 
 from ClassicKinematics import PantherClassic
@@ -66,8 +63,6 @@ def driverNode():
     RK = factory(kinematics_type)
     br = tf2_ros.TransformBroadcaster()
     tf = TransformStamped()
-    battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
-    battery_msg = BatteryState()
 
     joint_state_publisher = rospy.Publisher(
         "joint_states", JointState, queue_size=1)
@@ -237,15 +232,6 @@ def driverNode():
 
             joint_state_publisher.publish(joint_state_msg)
 
-            # Publish battery data
-            try:
-                battery_msg.voltage = float(
-                    front_controller.sdo[0x210D][2].raw)/10
-                battery_msg.current = float(
-                    front_controller.sdo['Qry_BATAMPS'][1].raw)/10
-                battery_publisher.publish(battery_msg)
-            except:
-                rospy.logwarn("Error getting battery data")
 
             try:
                 robot_x_pos, robot_y_pos, robot_th_pos = RK.inverseKinematics(
