@@ -2,7 +2,6 @@
 
 import canopen
 import math
-import yaml
 
 import rospy
 import tf2_ros

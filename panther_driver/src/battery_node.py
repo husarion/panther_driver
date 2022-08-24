@@ -63,7 +63,7 @@ class BatteryNode:
             exit(1)
 
         # Get battery Data
-        # ?????????????????????
+
         try:
             I_driv1 = float(self.front_controller.sdo['Qry_BATAMPS'][1].raw) / 10
             I_driv2 = float(self.rear_controller.sdo['Qry_BATAMPS'][1].raw) / 10
@@ -95,8 +95,8 @@ class BatteryNode:
                 # rospy.loginfo(f'[{rospy.get_name()}] BATTERY LOG:' +
                 #     f'I_bat1={I_bat1:.2f}, Idriv1={Idriv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, I_bat1={I_bat1:.2f}, temp_bat1={temp_bat1:.2f}')
 
-                self._publish_battery_msg(self.battery1_publisher, True, V_bat1, temp_bat1, I_bat1)
-                self._publish_battery_msg(self.battery2_publisher, False)
+                self._publish_battery_msg(self._battery1_publisher, True, V_bat1, temp_bat1, I_bat1)
+                self._publish_battery_msg(self._battery2_publisher, False)
             else:
 
                 # Calculate Temp in deg of Celcius
@@ -129,18 +129,8 @@ class BatteryNode:
         except:
             rospy.logerr(f'[{rospy.get_name()}] Error Calculating and publishing bat data')
 
-        try:
-            # Publish battery data
-            try:
-                V_bat = float(self.front_controller.sdo[0x210D][2].raw) / 10
-                I_bat = float(self.front_controller.sdo['Qry_BATAMPS'][1].raw) / 10
-                self._publish_battery_msg(V_bat, I_bat)
-            except:
-                rospy.logwarn('Error getting battery data')
-        except:
-            rospy.logerr('CAN protocol error')
 
-    def _publish_battery_msg(bat_pub, present, V_bat=NaN, temp_bat=NaN, I_bat=NaN):
+    def _publish_battery_msg(self, bat_pub, present, V_bat=NaN, temp_bat=NaN, I_bat=NaN):
         battery_msg = BatteryState()
         if present:
             battery_msg.header.stamp = rospy.Time.now()
