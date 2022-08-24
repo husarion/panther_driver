@@ -43,6 +43,7 @@ def main():
     panther_hardware = PantherHardware('panther_hardware')
     rospy.spin()
 
+    GPIO.cleanup()
 
 if __name__ == '__main__':
     try:
