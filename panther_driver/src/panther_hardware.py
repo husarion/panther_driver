@@ -34,9 +34,7 @@ class PantherHardware:
             time.sleep(0.01)
         except:
             GPIO.cleanup()
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setup(MOTOR_ON, GPIO.OUT)
-            GPIO.setup(STAGE2_INPUT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+            self._setup_gpio()
 
 
 def main():
@@ -44,6 +42,7 @@ def main():
     rospy.spin()
 
     GPIO.cleanup()
+
 
 if __name__ == '__main__':
     try:
