@@ -64,7 +64,7 @@ def get_ADC_measurement(name: str, config_file):
     data = config_file[name]
     path = data["path"]
     raw_value = read_file(path)
-    value = raw_value * data["LSB"]
+    value = (raw_value - data["offset"]) * data["LSB"]
 
     return value
 
@@ -254,21 +254,24 @@ def driverNode():
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error while writing to rear right Cmd_CANGO")
 
-            # Get battery Data
-            try:
-                Idriv1 = float(front_controller.sdo["Qry_BATAMPS"][1].raw)/10
-                Idriv2 = float(rear_controller.sdo["Qry_BATAMPS"][1].raw)/10
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error getting battery data from CAN")
+            # Get battery Data TODO (REFACTOR) handling of sending this data to battery node 
+            # try:
+            #     Idriv1 = float(front_controller.sdo["Qry_BATAMPS"][1].raw) / 10
+            #     Idriv2 = float(rear_controller.sdo["Qry_BATAMPS"][1].raw) / 10
+            #     V_driv1 = float(front_controller.sdo[0x210D][2].raw) / 10
+            #     V_driv2 = float(rear_controller.sdo[0x210D][2].raw) / 10
+            # except:
+            #     rospy.logwarn(f"[{rospy.get_name()}] Error getting battery data from CAN")
 
             try:
                 V_bat1 = get_ADC_measurement("BAT1_voltage", config_file)
                 V_bat2 = get_ADC_measurement("BAT2_voltage", config_file)
                 V_temp_bat1 = get_ADC_measurement("BAT1_temp", config_file)
                 V_temp_bat2 = get_ADC_measurement("BAT2_temp", config_file)
-                Icharge_bat1 = get_ADC_measurement("BAT1_charge_current", config_file)
-                Icharge_bat2 = get_ADC_measurement("BAT2_charge_current", config_file)
-                Idig = get_ADC_measurement("IDIG_current", config_file)
+                I_charge_bat1 = get_ADC_measurement("BAT1_charge_current", config_file)
+                I_charge_bat2 = get_ADC_measurement("BAT2_charge_current", config_file)
+                I_bat1 = get_ADC_measurement("BAT1_current", config_file)
+                I_bat2 = get_ADC_measurement("BAT2_current", config_file)
             except:
                 rospy.logerr(f"[{rospy.get_name()}] Battery ADC measurement error excep")
 
@@ -281,13 +284,10 @@ def driverNode():
                     # Calculate Temp in deg of Celcius
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
 
-                    Ibat1 =  -1 * ( Idriv1 + Idriv2 + Idig - Icharge_bat1)
+                    # rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:" +
+                    #     f"I_bat1={I_bat1:.2f}, Idriv1={Idriv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, I_bat1={I_bat1:.2f}, temp_bat1={temp_bat1:.2f}")
 
-                    rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG: Idig={Idig}, " +
-                        f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
-                        f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}")
-
-                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
+                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, I_bat1)
                     publish_battery_msg(battery2_publisher, False)
                 else:
                     # rospy.loginfo(f"[{rospy.get_name()}] Two bat detected")
@@ -296,34 +296,21 @@ def driverNode():
                     temp_bat1 = voltage_to_deg(V_temp_bat1)
                     temp_bat2 = voltage_to_deg(V_temp_bat2)
 
-                    V_diff = V_bat1 - V_bat2
+                    # rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG:\n" +
+                    #     f"I_bat1={I_bat1:.2f}, V_bat1={V_bat1:.2f}, Idriv1={Idriv1:.2f}, V_driv1={V_driv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, temp_bat1={temp_bat1:.2f} \n" +
+                    #     f"I_bat2={I_bat2:.2f}, V_bat2={V_bat2:.2f}, Idriv2={Idriv2:.2f}, V_driv2={V_driv2:.2f}, I_charge_bat2={I_charge_bat2:.2f}, temp_bat2={temp_bat2:.2f}")
 
-                    if abs(V_diff) <= 0.2:
-                        k = 0.5
-                    elif V_diff > 0.2:
-                        k = 1
-                    elif V_diff < -0.2:
-                        k = 0
-                    else:
-                        rospy.logger(f"[{rospy.get_name()}] V_difff out of range")
+                    # rospy.loginfo(f"CMD_VEL lin_x={RK.lin_x:.2f}, lin_y={RK.lin_y:.2f}, ang_z={RK.ang_z:.2f}")    
 
-                    Ibat1 = -1 * ( Idriv1 + (k * Idig) - Icharge_bat1)
-                    Ibat2 = -1 * ( Idriv2 + ((1-k) * Idig) - Icharge_bat2 )
-
-                    # rospy.loginfo(f"[{rospy.get_name()}] BATTERY LOG: k={k}, Idig={Idig}, " +
-                    #     f"Ibat1={Ibat1}, Idriv1={Idriv1}, Icharge_bat1={Icharge_bat1}, " +
-                    #     f"Ibat2={Ibat2}, Idriv2={Idriv2}, Icharge_bat2={Icharge_bat2}, " +
-                    #     f"V_bat1={V_bat1}, V_temp_bat1={V_temp_bat1}, temp_bat1={temp_bat1}, Ibat1={Ibat1}, " +
-                    #     f"V_bat2={V_bat2}, V_temp_bat2={V_temp_bat2}, temp_bat2={temp_bat2}, Ibat2={Ibat2}")
-
-                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, Ibat1)
-                    publish_battery_msg(battery2_publisher, True, V_bat2, temp_bat2, Ibat2)
+                    publish_battery_msg(battery1_publisher, True, V_bat1, temp_bat1, -I_bat1 + I_charge_bat1)
+                    publish_battery_msg(battery2_publisher, True, V_bat2, temp_bat2, -I_bat2 + I_charge_bat2)
 
                     V_bat_avereage = (V_bat1+V_bat2)/2
                     temp_average = (temp_bat1+temp_bat2)/2
-                    I_bat_average = (Ibat1+Ibat2)/2
+                    I_bat_average = (I_bat1+I_bat2)/2
+                    I_charge_bat_average = (I_charge_bat1+I_charge_bat2)/2
 
-                    publish_battery_msg(battery_publisher, True, V_bat_avereage, temp_average, I_bat_average)
+                    publish_battery_msg(battery_publisher, True, V_bat_avereage, temp_average, -I_bat_average + I_charge_bat_average)
             except:
                 rospy.logerr(f"[{rospy.get_name()}] Error Calculating and publishing bat data")
 

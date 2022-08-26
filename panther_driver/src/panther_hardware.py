@@ -56,7 +56,7 @@ class PantherHardware:
         )
 
         self._charger_state_pub = rospy.Publisher(
-            "/panther_hardware/charger_sens", Bool, queue_size=1
+            "/panther_hardware/charger_connected", Bool, queue_size=1
         )
         self._timer_charger = rospy.Timer(
             rospy.Duration(0.5), self._publish_charger_state
@@ -151,7 +151,12 @@ class PantherHardware:
         return self._handle_set_bool_srv(req.data, VDIG_OFF, "Digital power enable")
 
     def _motors_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
-        return self._handle_set_bool_srv(req.data, DRIVER_EN, "Motors driver enable")
+        resp1 = self._handle_set_bool_srv(req.data, VMOT_ON, "Motors driver enable")
+        resp2 = self._handle_set_bool_srv(req.data, DRIVER_EN, "Motors driver enable")
+
+        if resp1.success and resp2.success:
+            return SetBoolResponse(True, resp1.message)
+        return SetBoolResponse(False, resp1.message)
 
     def _fan_enable_cb(self, req: SetBoolRequest) -> SetBoolResponse:
         return self._handle_set_bool_srv(req.data, FAN_SW, "Fan enable")
