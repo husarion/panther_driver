@@ -254,14 +254,14 @@ def driverNode():
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error while writing to rear right Cmd_CANGO")
 
-            # Get battery Data
-            try:
-                Idriv1 = float(front_controller.sdo["Qry_BATAMPS"][1].raw) / 10
-                Idriv2 = float(rear_controller.sdo["Qry_BATAMPS"][1].raw) / 10
-                V_driv1 = float(front_controller.sdo[0x210D][2].raw) / 10
-                V_driv2 = float(rear_controller.sdo[0x210D][2].raw) / 10
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error getting battery data from CAN")
+            # Get battery Data TODO (REFACTOR) handling of sending this data to battery node 
+            # try:
+            #     Idriv1 = float(front_controller.sdo["Qry_BATAMPS"][1].raw) / 10
+            #     Idriv2 = float(rear_controller.sdo["Qry_BATAMPS"][1].raw) / 10
+            #     V_driv1 = float(front_controller.sdo[0x210D][2].raw) / 10
+            #     V_driv2 = float(rear_controller.sdo[0x210D][2].raw) / 10
+            # except:
+            #     rospy.logwarn(f"[{rospy.get_name()}] Error getting battery data from CAN")
 
             try:
                 V_bat1 = get_ADC_measurement("BAT1_voltage", config_file)
