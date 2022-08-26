@@ -1,17 +1,26 @@
 #!/usr/bin/python3
 
 import math
-import canopen
 import yaml
 from numpy import NaN
 
 import rospy
 from sensor_msgs.msg import BatteryState
+from std_msgs.msg import Float32MultiArray
 
 
 class BatteryNode:
     def __init__(self, name):
         rospy.init_node(name)
+
+        self._battery_driv_sub = rospy.Subscriber(
+            'battery_driv', Float32MultiArray, self._battery_driv_callback
+        )
+
+        self.V_driv_1 = NaN
+        self.V_driv_2 = NaN
+        self.I_driv_1 = NaN
+        self.I_driv_2 = NaN
 
         # Battery
         self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
@@ -32,28 +41,14 @@ class BatteryNode:
             except yaml.YAMLError as exc:
                 print(exc)
 
-        can_interface = rospy.get_param('~can_interface', 'panther_can')
         loop_rate = rospy.get_param('~loop_rate', 20)
-
-        if rospy.has_param('~eds_file'):
-            eds_file = rospy.get_param('~eds_file')
-        else:
-            rospy.logerr(f'[{rospy.get_name()}] eds_file not defined, can not start CAN interface')
-            return
-
-        rospy.loginfo(
-            f'[{rospy.get_name()}] Start with creating a network representing one CAN bus'
-        )
-        self.network = canopen.Network()
-        rospy.loginfo(f'[{rospy.get_name()}] Add some nodes with corresponding Object Dictionaries')
-        self.front_controller = canopen.RemoteNode(1, eds_file)
-        self.rear_controller = canopen.RemoteNode(2, eds_file)
-        self.network.add_node(self.front_controller)
-        self.network.add_node(self.rear_controller)
-        rospy.loginfo(f'[{rospy.get_name()}] Connect to the CAN bus')
-        self.network.connect(channel=can_interface, bustype='socketcan')
-
         rospy.Timer(rospy.Duration(1 / loop_rate), self._battery_callback)
+
+    def _battery_driv_callback(self, msg):
+        self.V_driv_1 = msg.data[0]
+        self.I_driv_1 = msg.data[1]
+        self.V_driv_2 = msg.data[2]
+        self.I_driv_2 = msg.data[3]
 
     def _battery_callback(self, *args):
         try:
@@ -63,15 +58,6 @@ class BatteryNode:
             exit(1)
 
         # Get battery Data
-
-        try:
-            I_driv1 = float(self.front_controller.sdo['Qry_BATAMPS'][1].raw) / 10
-            I_driv2 = float(self.rear_controller.sdo['Qry_BATAMPS'][1].raw) / 10
-            V_driv1 = float(self.front_controller.sdo[0x210D][2].raw) / 10
-            V_driv2 = float(self.rear_controller.sdo[0x210D][2].raw) / 10
-        except:
-            rospy.logwarn(f'[{rospy.get_name()}] Error getting battery data from CAN')
-
         try:
             V_bat1 = self._get_ADC_measurement('BAT1_voltage', self.config_file)
             V_bat2 = self._get_ADC_measurement('BAT2_voltage', self.config_file)
@@ -129,38 +115,6 @@ class BatteryNode:
         except:
             rospy.logerr(f'[{rospy.get_name()}] Error Calculating and publishing bat data')
 
-
-    def _publish_battery_msg(self, bat_pub, present, V_bat=NaN, temp_bat=NaN, I_bat=NaN):
-        battery_msg = BatteryState()
-        if present:
-            battery_msg.header.stamp = rospy.Time.now()
-            battery_msg.voltage = V_bat
-            battery_msg.temperature = temp_bat
-            battery_msg.current = I_bat
-            battery_msg.percentage = (battery_msg.voltage - 32) / 10
-            battery_msg.capacity = 20
-            battery_msg.design_capacity = 20
-            battery_msg.charge = battery_msg.percentage * battery_msg.design_capacity
-            battery_msg.power_supply_status
-            battery_msg.power_supply_health
-            battery_msg.power_supply_technology = 3
-            battery_msg.present = True
-        else:
-            battery_msg.header.stamp = rospy.Time.now()
-            battery_msg.voltage = NaN
-            battery_msg.temperature = NaN
-            battery_msg.current = NaN
-            battery_msg.percentage = NaN
-            battery_msg.capacity = NaN
-            battery_msg.design_capacity = NaN
-            battery_msg.charge = NaN
-            battery_msg.power_supply_status
-            battery_msg.power_supply_health
-            battery_msg.power_supply_technology = 3
-            battery_msg.present = False
-
-        bat_pub.publish(battery_msg)
-
     def _get_ADC_measurement(self, name: str, config_file):
         data = config_file[name]
         path = data['path']
@@ -193,6 +147,37 @@ class BatteryNode:
 
         # rospy.loginfo(f'U_meas={V_temp}, R_therm={R_therm}')
         return (A * B / (A * math.log(R_therm / R0) + B)) - 273.15
+
+    def _publish_battery_msg(self, bat_pub, present, V_bat=NaN, temp_bat=NaN, I_bat=NaN):
+        battery_msg = BatteryState()
+        if present:
+            battery_msg.header.stamp = rospy.Time.now()
+            battery_msg.voltage = V_bat
+            battery_msg.temperature = temp_bat
+            battery_msg.current = I_bat
+            battery_msg.percentage = (battery_msg.voltage - 32) / 10
+            battery_msg.capacity = 20
+            battery_msg.design_capacity = 20
+            battery_msg.charge = battery_msg.percentage * battery_msg.design_capacity
+            battery_msg.power_supply_status
+            battery_msg.power_supply_health
+            battery_msg.power_supply_technology = 3
+            battery_msg.present = True
+        else:
+            battery_msg.header.stamp = rospy.Time.now()
+            battery_msg.voltage = NaN
+            battery_msg.temperature = NaN
+            battery_msg.current = NaN
+            battery_msg.percentage = NaN
+            battery_msg.capacity = NaN
+            battery_msg.design_capacity = NaN
+            battery_msg.charge = NaN
+            battery_msg.power_supply_status
+            battery_msg.power_supply_health
+            battery_msg.power_supply_technology = 3
+            battery_msg.present = False
+
+        bat_pub.publish(battery_msg)
 
 
 def main():
