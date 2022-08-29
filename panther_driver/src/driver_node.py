@@ -12,7 +12,7 @@ from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Float32MultiArray
+from panther_msgs.msg import BatteryDriver
 
 from ClassicKinematics import PantherClassic
 from MecanumKinematics import PantherMecanum
@@ -66,7 +66,13 @@ def driverNode():
     br = tf2_ros.TransformBroadcaster()
     tf = TransformStamped()
 
-    battery_driv_publisher = rospy.Publisher('battery_driv', Float32MultiArray, queue_size=1)
+    battery_driver_publisher = rospy.Publisher('battery_driver', BatteryDriver, queue_size=1)
+    battery_driver_msg = BatteryDriver()
+    battery_driver_msg.V_front = 0
+    battery_driver_msg.V_rear = 0
+    battery_driver_msg.I_front = 0
+    battery_driver_msg.I_rear = 0
+    battery_driver_msg.error = False
 
     joint_state_publisher = rospy.Publisher(
         "joint_states", JointState, queue_size=1)
@@ -236,18 +242,18 @@ def driverNode():
 
             joint_state_publisher.publish(joint_state_msg)
 
-             # publish driver battery data
+            # read drivers battery data
             try:
-                battery_driver_data = Float32MultiArray()
-                battery_driver_data.data.clear()
-                battery_driver_data.data.append(float(front_controller.sdo[0x210D][2].raw)/10)          # battery voltage from front controller
-                battery_driver_data.data.append(float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10)   # battery current from front controller
-                battery_driver_data.data.append(float(rear_controller.sdo[0x210D][2].raw)/10)           # battery voltage from rear controller
-                battery_driver_data.data.append(float(rear_controller.sdo['Qry_BATAMPS'][1].raw)/10)    # battery current from rear controller
-
-                battery_driv_publisher.publish(battery_driver_data)
+                battery_driver_msg.V_front = float(front_controller.sdo[0x210D][2].raw)/10
+                battery_driver_msg.V_rear = float(rear_controller.sdo[0x210D][2].raw)/10
+                battery_driver_msg.I_front = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
+                battery_driver_msg.I_rear = float(rear_controller.sdo['Qry_BATAMPS'][1].raw)/10
+                battery_driver_msg.error = False
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error getting battery data")
+
+            # publish drivers battery data
+            battery_driver_publisher.publish(battery_driver_msg)
 
             try:
                 robot_x_pos, robot_y_pos, robot_th_pos = RK.inverseKinematics(

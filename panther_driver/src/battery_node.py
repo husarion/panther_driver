@@ -4,7 +4,7 @@ from numpy import NaN
 
 import rospy
 from sensor_msgs.msg import BatteryState
-from std_msgs.msg import Float32MultiArray
+from panther_msgs.msg import BatteryDriver
 
 
 class BatteryNode:
@@ -12,14 +12,14 @@ class BatteryNode:
         rospy.init_node(name)
 
         self._battery_driv_sub = rospy.Subscriber(
-            'battery_driv', Float32MultiArray, self._batter_driv_callback
+            'battery_driv', BatteryDriver, self._batter_driv_callback
         )
 
         self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
 
     def _batter_driv_callback(self, msg):
-        V_bat = (msg.data[0] + msg.data[2]) / 2
-        I_bat = (msg.data[1] + msg.data[3]) / 2
+        V_bat = (msg.V_front + msg.V_rear) / 2
+        I_bat = (msg.I_front + msg.I_rear) / 2
         self._publish_battery_msg(V_bat, I_bat)
 
     def _publish_battery_msg(self, V_bat=NaN, I_bat=NaN):
