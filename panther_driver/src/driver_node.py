@@ -172,7 +172,7 @@ def driverNode():
                 rospy.logwarn(f"[{rospy.get_name()}] Error while writing to rear right Cmd_CANGO")
 
             try:
-                front_controller.sdo['Cmd_CANGO'][2].raw = RK.FL_enc_speed
+                wheel_pos[0] = front_controller.sdo["Qry_ABCNTR"][2].raw
             except:
                 rospy.logwarn(f"[{rospy.get_name()}] Error reading front left controller sdo")
             try:
