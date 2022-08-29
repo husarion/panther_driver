@@ -6,7 +6,7 @@ from numpy import NaN
 
 import rospy
 from sensor_msgs.msg import BatteryState
-from std_msgs.msg import Float32MultiArray
+from panther_msgs.msg import BatteryDriver
 
 
 class BatteryNode:
@@ -14,13 +14,13 @@ class BatteryNode:
         rospy.init_node(name)
 
         self._battery_driv_sub = rospy.Subscriber(
-            'battery_driv', Float32MultiArray, self._battery_driv_callback
+            'battery_driver', BatteryDriver, self._battery_driv_callback
         )
 
-        self.V_driv_1 = NaN
-        self.V_driv_2 = NaN
-        self.I_driv_1 = NaN
-        self.I_driv_2 = NaN
+        self.V_driv_front = NaN
+        self.V_driv_rear = NaN
+        self.I_driv_front = NaN
+        self.I_driv_rear = NaN
 
         # Battery
         self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
@@ -45,10 +45,10 @@ class BatteryNode:
         rospy.Timer(rospy.Duration(1 / loop_rate), self._battery_callback)
 
     def _battery_driv_callback(self, msg):
-        self.V_driv_1 = msg.data[0]
-        self.I_driv_1 = msg.data[1]
-        self.V_driv_2 = msg.data[2]
-        self.I_driv_2 = msg.data[3]
+        self.V_driv_front = msg.V_front
+        self.V_driv_rear = msg.V_rear
+        self.I_driv_front = msg.I_front
+        self.I_driv_rear = msg.I_rear
 
     def _battery_callback(self, *args):
         try:
