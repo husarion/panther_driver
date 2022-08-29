@@ -12,7 +12,7 @@ class BatteryNode:
         rospy.init_node(name)
 
         self._battery_driv_sub = rospy.Subscriber(
-            'battery_driv', BatteryDriver, self._batter_driv_callback
+            'battery_driver', BatteryDriver, self._batter_driv_callback
         )
 
         self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
