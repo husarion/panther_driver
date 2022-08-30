@@ -37,7 +37,7 @@ services:
     command: roscore
 
   webui-ros-joystick:
-    image: husarion/webui-ros-joystick:noetic-latest
+    image: husarion/webui-ros-joystick:noetic
     tty: true 
     container_name: webui-ros-joystick
     network_mode: host
