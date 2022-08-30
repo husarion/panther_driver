@@ -250,8 +250,8 @@ def driverNode():
 
             # read drivers battery data
             try:
-                battery_driver_msg.V_front = float(front_controller.sdo[0x210D][2].raw)/10
-                battery_driver_msg.V_rear = float(rear_controller.sdo[0x210D][2].raw)/10
+                battery_driver_msg.V_front = float(front_controller.sdo['Qry_VOLTS'][2].raw)/10
+                battery_driver_msg.V_rear = float(rear_controller.sdo['Qry_VOLTS'][2].raw)/10
                 battery_driver_msg.I_front = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
                 battery_driver_msg.I_rear = float(rear_controller.sdo['Qry_BATAMPS'][1].raw)/10
                 battery_driver_msg.error = False
