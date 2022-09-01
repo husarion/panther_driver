@@ -34,6 +34,8 @@
 
     <node pkg="panther_driver" name="panther_hardware" type="panther_hardware.py" output="screen" required="true"/>
 
+    <node pkg="panther_driver" name="battery_node" type="battery_node.py" output="screen"/>
+
     <!-- TF FOR LIDAR SENSOR -->
     <node pkg="tf" type="static_transform_publisher" name="laser_link" args="0.39 0.0 0.19 3.14 0.0 0.0 base_link laser 100" />
 </launch>

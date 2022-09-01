@@ -27,6 +27,7 @@ RUN pip3 install \
 WORKDIR /ros_ws
 
 COPY ./panther_driver src/panther_driver
+RUN git clone --branch ros1 https://github.com/husarion/panther_msgs.git src/panther_msgs
 
 RUN chmod +x src/panther_driver/src/driver_node.py && \
     chmod +x src/panther_driver/src/panther_hardware.py
