@@ -6,7 +6,7 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp rospy
+  roscpp rospy panther_msgs
 )
 
 add_compile_options(-std=c++11)
@@ -14,7 +14,7 @@ add_compile_options(-std=c++11)
 catkin_package(
 # INCLUDE_DIRS include
  LIBRARIES panther_driver
- CATKIN_DEPENDS roscpp rospy
+ CATKIN_DEPENDS roscpp rospy panther_msgs
 # DEPENDS system_lib
 )
 

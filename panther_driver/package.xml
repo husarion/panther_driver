@@ -21,6 +21,9 @@
   <exec_depend>gpiozero</exec_depend>
   <exec_depend>paramiko</exec_depend>
 
+  <build_depend>panther_msgs</build_depend>
+  <exec_depend>panther_msgs</exec_depend>
+
   <export>
 
   </export>
