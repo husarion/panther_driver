@@ -1,41 +1,21 @@
 #!/usr/bin/python3
 
-import canopen
 import math
+import time 
 
 import rospy
 import tf2_ros
-from numpy import NaN
 
-from geometry_msgs.msg import Pose
 from geometry_msgs.msg import TransformStamped
-from geometry_msgs.msg import Twist
-from nav_msgs.msg import Odometry
 from sensor_msgs.msg import JointState
+from geometry_msgs.msg import Pose
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Twist
+
+from panther_kineatics import PantherDifferential, PantherMecanum
+from panther_can import PantherCAN
+
 from panther_msgs.msg import BatteryDriver
-
-from ClassicKinematics import PantherClassic
-from MecanumKinematics import PantherMecanum
-from MixedKinematics import PantherMix
-
-
-def sign(x):
-    x_sign = bool(x > 0) - bool(x < 0)
-    return x_sign if x_sign != 0 else 1
-
-def factory(kinematics_type=0):
-    if kinematics_type == "classic":
-        rospy.loginfo(f"[{rospy.get_name()}] initializing classic kinematics")
-        return PantherClassic()
-    elif kinematics_type == "mecanum":
-        rospy.loginfo(f"[{rospy.get_name()}] initializing mecanum kinematics")
-        return PantherMecanum()
-    elif kinematics_type == "mix":
-        rospy.loginfo(f"[{rospy.get_name()}] initializing mixed kinematics")
-        return PantherMix()
-    else:
-        rospy.logerr(
-            f"[{rospy.get_name()}] unrecognized kinematics type, provide classic, mecanum or mix as rosparam [~wheel_type]")
 
 
 def euler_to_quaternion(yaw, pitch, roll):
@@ -51,273 +31,235 @@ def euler_to_quaternion(yaw, pitch, roll):
     return [qx, qy, qz, qw]
 
 
-def driverNode():
+class PantherDriver(object):
+    def __init__(self, name) -> None:
+        rospy.init_node(name, anonymous=False)
 
-    rospy.init_node("panther_driver", anonymous=False)
-    kinematics_type = rospy.get_param("~wheel_type", "classic")
-    odom_frame = rospy.get_param("~odom_frame", "odom")
-    base_link_frame = rospy.get_param("~base_link_frame", "base_link")
-    motor_torque_constant = rospy.get_param("~motor_torque_constant", 2.6149)
-    publish_tf = rospy.get_param("~publish_tf", True)
-    publish_odometry = rospy.get_param("~publish_odometry", True)
-    publish_pose = rospy.get_param("~publish_pose", True)
+        assert rospy.has_param(
+            "~eds_file"
+        ), f"[{rospy.get_name()}] eds_file not defined, can not start CAN interface"
+        self.eds_file = rospy.get_param("~eds_file")
+        self.can_interface = rospy.get_param("~can_interface", "panther_can")
+        self.kinematics_type = rospy.get_param("~wheel_type", "differential")
+        self.motor_torque_constant = rospy.get_param("~motor_torque_constant", 2.6149)
 
-    RK = factory(kinematics_type)
-    br = tf2_ros.TransformBroadcaster()
-    tf = TransformStamped()
+        self.publish_tf = rospy.get_param("~publish_tf", True)
+        self.publish_odom = rospy.get_param("~publish_odometry", True)
+        self.publish_pose = rospy.get_param("~publish_pose", True)
+        self.publish_joints = rospy.get_param("~publish_joints", True)
 
-    battery_driver_publisher = rospy.Publisher('battery_driver', BatteryDriver, queue_size=1)
-    battery_driver_msg = BatteryDriver()
-    battery_driver_msg.V_front = 0
-    battery_driver_msg.V_rear = 0
-    battery_driver_msg.I_front = 0
-    battery_driver_msg.I_rear = 0
-    battery_driver_msg.error = False
+        self.odom_frame = rospy.get_param("~odom_frame", "odom")
+        self.base_link_frame = rospy.get_param("~base_link_frame", "base_link")
+        self.wheels_joints_names = [
+            "front_left_wheel_joint",
+            "front_right_wheel_joint",
+            "rear_left_wheel_joint",
+            "rear_right_wheel_joint",
+        ]
 
-    joint_state_publisher = rospy.Publisher(
-        "joint_states", JointState, queue_size=1)
-    joint_state_msg = JointState()
-    joint_state_msg.header.frame_id = base_link_frame
-    joint_state_msg.name = [
-        "front_left_wheel_joint",
-        "front_right_wheel_joint",
-        "rear_left_wheel_joint",
-        "rear_right_wheel_joint"
-    ]
+        self.pose_msg = Pose()
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+        self.tf_stamped = TransformStamped()
+        self.tf_stamped.header.frame_id = self.odom_frame
+        self.tf_stamped.child_frame_id = self.base_link_frame
+        self.joint_state_msg = JointState()
+        self.joint_state_msg.header.frame_id = self.base_link_frame
+        self.joint_state_msg.name = self.wheels_joints_names
+        self.odom_msg = Odometry()
+        self.odom_msg.header.frame_id = self.odom_frame
+        self.battery_driver_msg = BatteryDriver()
 
-    if publish_pose == True:
-        pose_publisher = rospy.Publisher("pose", Pose, queue_size=1)
-        pose_msg = Pose()
-        pose_msg.position.x = 0
-        pose_msg.position.y = 0
-        pose_msg.position.z = 0
-        pose_msg.orientation.x = 0
-        pose_msg.orientation.y = 0
-        pose_msg.orientation.z = 0
-        pose_msg.orientation.w = 1
+        self.main_timer_freq = 1./15.   # 15 Hz
+        self.battery_timer_freq = 1.    # 1 Hz
+        self.last_time = rospy.Time.now()
+        self.last_battery_pub_time = rospy.Time.now()
+        self.cmd_vel_timeout = 0.2
 
-    if publish_odometry == True:
-        odom_publisher = rospy.Publisher("odom/wheel", Odometry, queue_size=1)
-        odom_msg = Odometry()
+        self.robot_x_pos = 0.0
+        self.robot_y_pos = 0.0
+        self.robot_th_pos = 0.0
 
-    rospy.Subscriber("/cmd_vel", Twist, RK.cmdVelCallback, queue_size=1)
+        self.wheels_ang_pos = [0.0, 0.0, 0.0, 0.0]
+        self.wheels_ang_vel = [0.0, 0.0, 0.0, 0.0]
+        self.motors_effort = [0.0, 0.0, 0.0, 0.0]
 
-    can_interface = rospy.get_param("~can_interface", "panther_can")
-    RK.robot_width = rospy.get_param("~robot_width", 0.682)
-    RK.robot_length = rospy.get_param("~robot_length", 0.44)
-    RK.wheel_radius = rospy.get_param("~wheel_radius", 0.1825)
-    RK.encoder_resolution = rospy.get_param("~encoder_resolution", 400*4)
-    RK.gear_ratio = rospy.get_param("~gear_ratio", 30.08)
-    RK.power_factor = rospy.get_param("~power_factor", 0.04166667)
+        # -------------------------------
+        #   Kinematic type
+        # -------------------------------
 
-    if rospy.has_param("~eds_file"):
-        eds_file = rospy.get_param("~eds_file")
-    else:
-        rospy.logerr(f"[{rospy.get_name()}] eds_file not defined, can not start CAN interface")
-        return
+        assert self.kinematics_type in [
+            "differential",
+            "mecanum",
+        ], f"[{rospy.get_name()}] The kinematics type is incorrect: {self.kinematics_type}"
 
-    loop_rate = 20
-    rate = rospy.Rate(loop_rate)
-    rospy.loginfo(f"[{rospy.get_name()}] Start with creating a network representing one CAN bus")
-    network = canopen.Network()
-    rospy.loginfo(f"[{rospy.get_name()}] Add some nodes with corresponding Object Dictionaries")
-    front_controller = canopen.RemoteNode(1, eds_file)
-    rear_controller = canopen.RemoteNode(2, eds_file)
-    network.add_node(front_controller)
-    network.add_node(rear_controller)
-    rospy.loginfo(f"[{rospy.get_name()}] Connect to the CAN bus")
-    network.connect(channel=can_interface, bustype="socketcan")
+        if self.kinematics_type == "differential":
+            self.panther_kinematics = PantherDifferential()
+        else:
+            self.panther_kinematics = PantherMecanum()
 
-    # rospy.loginfo(f"[{rospy.get_name()}] Reset encoders")
-    # front_controller.sdo["Cmd_SENCNTR"][1].raw = 0
-    # front_controller.sdo["Cmd_SENCNTR"][2].raw = 0
+        self.panther_kinematics.robot_width = rospy.get_param("~robot_width", 0.682)
+        self.panther_kinematics.robot_length = rospy.get_param("~robot_length", 0.44)
+        self.panther_kinematics.wheel_radius = rospy.get_param("~wheel_radius", 0.1825)
+        self.panther_kinematics.encoder_resolution = rospy.get_param(
+            "~encoder_resolution", 400 * 4
+        )
+        self.panther_kinematics.gear_ratio = rospy.get_param("~gear_ratio", 30.08)
+        self.panther_kinematics.power_factor = rospy.get_param(
+            "~power_factor", 0.04166667
+        )
 
-    robot_x_pos = 0.0
-    robot_y_pos = 0.0
-    robot_th_pos = 0.0
+        # -------------------------------
+        #   CAN interface
+        # -------------------------------
 
-    wheel_pos = [0.0, 0.0, 0.0, 0.0]
-    wheel_vel = [0.0, 0.0, 0.0, 0.0]
-    wheel_curr = [0.0, 0.0, 0.0, 0.0]
+        self.panther_can = PantherCAN(
+            eds_file=self.eds_file, can_interface=self.can_interface
+        )
+        time.sleep(4)
 
-    last_time = rospy.Time.now()
+        # -------------------------------
+        #   Publishers & Subscribers
+        # -------------------------------
 
-    # VARIABLE FOR ERROR TRACKING
-    err_count = 0
+        self.joint_publisher = rospy.Publisher("joint_states", JointState, queue_size=1)
+        self.pose_publisher = rospy.Publisher("pose", Pose, queue_size=1)
+        self.odom_publisher = rospy.Publisher("odom/wheel", Odometry, queue_size=1)
+        self.battery_driver_publisher = rospy.Publisher('battery_driver', BatteryDriver, queue_size=1)
 
-    while not rospy.is_shutdown():
+        rospy.Subscriber("/cmd_vel", Twist, self.panther_kinematics.cmd_vel_cb, queue_size=1)
+
+        # -------------------------------
+        #   Timers
+        # -------------------------------
+
+        self._main_timer = rospy.Timer(
+            rospy.Duration(self.main_timer_freq), self._main_timer_callback
+        )
+
+        # -------------------------------
+        # -------------------------------
+
+        rospy.loginfo(f"{rospy.get_name()} node started")
+
+
+    def _publish_joint_state(self) -> None:
+        self.joint_state_msg.header.stamp = rospy.Time.now()
+        self.joint_state_msg.position = self.wheels_ang_pos
+        self.joint_state_msg.velocity = self.wheels_ang_vel
+        self.joint_state_msg.effort = self.motors_effort
+        self.joint_publisher.publish(self.joint_state_msg)
+
+    def _publish_pose(self) -> None:
+        self.pose_msg.position.x = self.robot_x_pos
+        self.pose_msg.position.y = self.robot_y_pos
+        self.pose_msg.orientation.x = self.qx
+        self.pose_msg.orientation.y = self.qy
+        self.pose_msg.orientation.z = self.qz
+        self.pose_msg.orientation.w = self.qw
+        self.pose_publisher.publish(self.pose_msg)
+
+    def _publish_tf(self) -> None:
+        self.tf_stamped.header.stamp = rospy.Time.now()
+        self.tf_stamped.transform.translation.x = self.robot_x_pos
+        self.tf_stamped.transform.translation.y = self.robot_y_pos
+        self.tf_stamped.transform.translation.z = 0.0
+        self.tf_stamped.transform.rotation.x = self.qx
+        self.tf_stamped.transform.rotation.y = self.qy
+        self.tf_stamped.transform.rotation.z = self.qz
+        self.tf_stamped.transform.rotation.w = self.qw
+        self.tf_broadcaster.sendTransform(self.tf_stamped)
+
+    def _publish_odom(self) -> None:
+        self.odom_msg.header.stamp = rospy.Time.now()
+        self.odom_msg.pose.pose.position.x = self.robot_x_pos
+        self.odom_msg.pose.pose.position.y = self.robot_y_pos
+        self.odom_msg.pose.pose.orientation.x = self.qx
+        self.odom_msg.pose.pose.orientation.y = self.qy
+        self.odom_msg.pose.pose.orientation.z = self.qz
+        self.odom_msg.pose.pose.orientation.w = self.qw
+        self.odom_publisher.publish(self.odom_msg)
+
+    def _publish_battery_driver(self, *args) -> None:
+        (
+            self.battery_driver_msg.V_front,
+            self.battery_driver_msg.I_front,
+            self.battery_driver_msg.V_rear, 
+            self.battery_driver_msg.I_rear, 
+            self.battery_driver_msg.error, 
+        ) = self.panther_can.get_battery_data()
+
+        self.battery_driver_publisher.publish(self.battery_driver_msg)
+
+
+    def _main_timer_callback(self, *args) -> None:
         try:
             rospy.get_master().getPid()
         except:
-            rospy.logerr(f"[{rospy.get_name()}] Error getting master")
+            rospy.logerr(f"[{rospy.get_name()}] Error getting master.")
             exit(1)
+
+        now = rospy.Time.now()
+        dt = (now - self.last_time).to_sec()
+        self.last_time = now
+
+        if (now - self.panther_kinematics.cmd_vel_command_time) > rospy.Duration(secs=self.cmd_vel_timeout):
+            self.panther_kinematics.FL_enc_speed = 0.0
+            self.panther_kinematics.FR_enc_speed = 0.0
+            self.panther_kinematics.RL_enc_speed = 0.0
+            self.panther_kinematics.RR_enc_speed = 0.0
+
+        self.panther_can.set_wheels_enc_velocity(
+            self.panther_kinematics.FL_enc_speed,
+            self.panther_kinematics.FR_enc_speed,
+            self.panther_kinematics.RL_enc_speed,
+            self.panther_kinematics.RR_enc_speed,
+        )
+
+        wheel_enc_pos = self.panther_can.get_wheels_enc_pose()
+        wheel_enc_vel = self.panther_can.get_wheels_enc_velocity()
+        wheel_enc_curr = self.panther_can.get_motor_enc_current()
+
+        # convert tics to rad
+        self.wheels_ang_pos = [
+            (2.0 * math.pi) * (pos / (self.panther_kinematics.encoder_resolution * self.panther_kinematics.gear_ratio))
+            for pos in wheel_enc_pos
+        ]
+        # convert RPM to rad/s
+        self.wheels_ang_vel = [
+            (2.0 * math.pi / 60) * (vel / self.panther_kinematics.gear_ratio)
+            for vel in wheel_enc_vel
+        ]
+        # convert A to Nm
+        self.motors_effort = [
+            wheel_enc_curr[i] * self.motor_torque_constant * math.copysign(1, wheel_enc_vel[i])
+            for i in range(len(wheel_enc_curr))
+        ]
+
         try:
-            now = rospy.Time.now()
-            dt_ = (now - last_time).to_sec()
-            last_time = now
+            self.robot_x_pos, self.robot_y_pos, self.robot_th_pos = \
+                self.panther_kinematics.inverse_kinematics(*self.wheels_ang_vel, dt_=dt) 
+        except:
+            rospy.logwarn(f"[{rospy.get_name()}] Could not get robot pose")
 
-            if((now - RK.cmd_vel_command_time) > rospy.Duration(secs=0.2)):
-                RK.FL_enc_speed = 0.0
-                RK.FR_enc_speed = 0.0
-                RK.RL_enc_speed = 0.0
-                RK.RR_enc_speed = 0.0
+        self.qx, self.qy, self.qz, self.qw = euler_to_quaternion(self.robot_th_pos, 0, 0)
 
-            try:
-                front_controller.sdo["Cmd_CANGO"][2].raw = RK.FL_enc_speed
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error while writing to front left Cmd_CANGO")
-            try:
-                front_controller.sdo["Cmd_CANGO"][1].raw = RK.FR_enc_speed
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error while writing to front right Cmd_CANGO")
-            try:
-                rear_controller.sdo["Cmd_CANGO"][2].raw = RK.RL_enc_speed
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error while writing to rear left Cmd_CANGO")
-            try:
-                rear_controller.sdo["Cmd_CANGO"][1].raw = RK.RR_enc_speed
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error while writing to rear right Cmd_CANGO")
+        if self.publish_joints: self._publish_joint_state()
+        if self.publish_pose:   self._publish_pose()
+        if self.publish_odom:   self._publish_odom()
+        if self.publish_tf:     self._publish_tf()
 
-            # query position
-            try:
-                wheel_pos[0] = front_controller.sdo["Qry_ABCNTR"][2].raw
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading front left controller sdo")
-            try:
-                wheel_pos[1] = front_controller.sdo["Qry_ABCNTR"][1].raw
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading front right controller sdo")
-            try:
-                wheel_pos[2] = rear_controller.sdo["Qry_ABCNTR"][2].raw
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading rear left controller sdo")
-            try:  
-                wheel_pos[3] = rear_controller.sdo["Qry_ABCNTR"][1].raw
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading rear right controller sdo")
-
-            # query velocity
-            try:
-                wheel_vel[0] = front_controller.sdo["Qry_ABSPEED"][2].raw
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading front left controller sdo")
-            try:
-                wheel_vel[1] = front_controller.sdo["Qry_ABSPEED"][1].raw
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading front right controller sdo")
-            try:
-                wheel_vel[2] = rear_controller.sdo["Qry_ABSPEED"][2].raw
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading rear left controller sdo")
-            try:  
-                wheel_vel[3] = rear_controller.sdo["Qry_ABSPEED"][1].raw
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading rear right controller sdo")
+        if now - self.last_battery_pub_time > rospy.Duration(secs=self.battery_timer_freq):
+            self._publish_battery_driver()
+            self.last_battery_pub_time = rospy.Time.now()
 
 
-            # query current
-            # division by 10 is needed according to documentation
-            try:
-                wheel_curr[0] = front_controller.sdo["Qry_MOTAMPS"][2].raw / 10.0
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading current front left controller sdo")
-            try:
-                wheel_curr[1] = front_controller.sdo["Qry_MOTAMPS"][1].raw / 10.0
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading current front right controller sdo")
-            try:
-                wheel_curr[2] = rear_controller.sdo["Qry_MOTAMPS"][2].raw / 10.0
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading current rear left controller sdo")
-            try:  
-                wheel_curr[3] = rear_controller.sdo["Qry_MOTAMPS"][1].raw / 10.0
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error reading current rear right controller sdo")
-
-
-            joint_state_msg.header.stamp = rospy.Time.now()
-
-            # convert tics to rad
-            joint_state_msg.position = [(2.0 * math.pi) * (pos / (RK.encoder_resolution * RK.gear_ratio)) for pos in wheel_pos]
-            # convert RPM to rad/s
-            joint_state_msg.velocity = [(2.0 * math.pi / 60) * (vel / RK.gear_ratio) for vel in wheel_vel]
-            # convert to A to Nm
-            joint_state_msg.effort = [
-               wheel_curr[i] * motor_torque_constant * sign(wheel_vel[i]) for i in range(len(wheel_curr))]
-
-            joint_state_publisher.publish(joint_state_msg)
-
-            # read drivers battery data
-            try:
-                battery_driver_msg.V_front = float(front_controller.sdo['Qry_VOLTS'][2].raw)/10
-                battery_driver_msg.V_rear = float(rear_controller.sdo['Qry_VOLTS'][2].raw)/10
-                battery_driver_msg.I_front = float(front_controller.sdo['Qry_BATAMPS'][1].raw)/10
-                battery_driver_msg.I_rear = float(rear_controller.sdo['Qry_BATAMPS'][1].raw)/10
-                battery_driver_msg.error = False
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Error getting battery data")
-
-            # publish drivers battery data
-            battery_driver_publisher.publish(battery_driver_msg)
-
-            try:
-                robot_x_pos, robot_y_pos, robot_th_pos = RK.inverseKinematics(
-                    *joint_state_msg.velocity, dt_)
-            except:
-                rospy.logwarn(f"[{rospy.get_name()}] Could not get robot pose")
-            qx, qy, qz, qw = euler_to_quaternion(robot_th_pos, 0, 0)
-
-            if publish_pose == True:
-                pose_msg.position.x = robot_x_pos
-                pose_msg.position.y = robot_y_pos
-                pose_msg.orientation.x = qx
-                pose_msg.orientation.y = qy
-                pose_msg.orientation.z = qz
-                pose_msg.orientation.w = qw
-                pose_publisher.publish(pose_msg)
-
-            if publish_tf == True:
-                tf.header.stamp = rospy.Time.now()
-                tf.header.frame_id = odom_frame
-                tf.child_frame_id = base_link_frame
-                tf.transform.translation.x = robot_x_pos
-                tf.transform.translation.y = robot_y_pos
-                tf.transform.translation.z = 0.0
-                tf.transform.rotation.x = qx
-                tf.transform.rotation.y = qy
-                tf.transform.rotation.z = qz
-                tf.transform.rotation.w = qw
-                br.sendTransform(tf)
-
-            if publish_odometry == True:
-                odom_msg.header.stamp = rospy.Time.now()
-                odom_msg.header.frame_id = odom_frame
-                odom_msg.pose.pose.position.x = robot_x_pos
-                odom_msg.pose.pose.position.y = robot_y_pos
-                odom_msg.pose.pose.orientation.x = qx
-                odom_msg.pose.pose.orientation.y = qy
-                odom_msg.pose.pose.orientation.z = qz
-                odom_msg.pose.pose.orientation.w = qw
-                odom_msg.twist.twist.linear.x = 0
-                odom_msg.twist.twist.linear.y = 0
-                odom_msg.twist.twist.linear.z = 0
-                odom_msg.twist.twist.angular.x = 0
-                odom_msg.twist.twist.angular.y = 0
-                odom_msg.twist.twist.angular.z = 0
-                odom_publisher.publish(odom_msg)
-
-        except Exception as e:
-            rospy.logerr(f"[{rospy.get_name()}] Error: {e}")
-            err_count+=1
-            if err_count >= 10:
-                return
-
-        rate.sleep()
+def main():
+    panther_driver_node = PantherDriver("panther_driver")
+    rospy.spin()
 
 
 if __name__ == "__main__":
     try:
-        driverNode()
-    except Exception as e:
-        rospy.logerr(f"[{rospy.get_name()}] Error: {e}")
+        main()
+    except rospy.ROSInterruptException:
+        pass

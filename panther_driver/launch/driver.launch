@@ -9,7 +9,7 @@
         <include file="$(find panther_driver)/launch/panther_driver.launch">
             <arg name="robot_width" value="0.697"/>
             <arg name="wheel_radius" value="0.1825"/>
-            <arg name="kinematics_type" value="classic"/>
+            <arg name="kinematics_type" value="differential"/>
             <arg name="kalman_params" value="$(arg kalman_params)"/>
         </include>
     </group>
@@ -18,7 +18,7 @@
         <include file="$(find panther_driver)/launch/panther_driver.launch">
             <arg name="robot_width" value="0.616"/>
             <arg name="wheel_radius" value="0.1015"/>
-            <arg name="kinematics_type" value="classic"/>
+            <arg name="kinematics_type" value="differential"/>
             <arg name="kalman_params" value="$(arg kalman_params)"/>
         </include>
     </group>
@@ -34,7 +34,7 @@
     
     <include file="$(find panther_driver)/launch/imu.launch"/>
 
-    <node pkg="panther_driver" name="panther_hardware" type="panther_hardware.py" output="screen" required="true"/>
+    <node pkg="panther_driver" name="hardware_node" type="hardware_node.py" output="screen" required="true"/>
 
     <node pkg="panther_driver" name="battery_node" type="battery_node.py" output="screen">
         <param name="measurements_file" type="string" value="$(arg measurements_file)" />

@@ -33,8 +33,8 @@ class Watchdog:
             self._watchdog_on = False
 
 
-class PantherHardware:
-    def __init__(self) -> None:
+class PantherHardware(object):
+    def __init__(self, name):
         self._setup_gpio()
         self._motor_start_sequence()
 
@@ -46,21 +46,22 @@ class PantherHardware:
         self._watchdog = Watchdog()
         self._watchdog.turn_on()
 
-        rospy.init_node("panther_hardware")
+        rospy.init_node(name, anonymous=False)
+
+        # -------------------------------
+        #   Publishers
+        # -------------------------------
 
         self._e_stop_state_pub = rospy.Publisher(
             "/panther_hardware/e_stop", Bool, queue_size=1
         )
-        self._timer_e_stop = rospy.Timer(
-            rospy.Duration(0.1), self._publish_e_stop_state
-        )
-
         self._charger_state_pub = rospy.Publisher(
             "/panther_hardware/charger_connected", Bool, queue_size=1
         )
-        self._timer_charger = rospy.Timer(
-            rospy.Duration(0.5), self._publish_charger_state
-        )
+        
+        # -------------------------------
+        #   Services
+        # -------------------------------
 
         self._aux_power_enable_srv = rospy.Service(
             "/panther_hardware/aux_power_enable", SetBool, self._aux_power_enable_cb
@@ -69,9 +70,7 @@ class PantherHardware:
             "/panther_hardware/charger_enable", SetBool, self._charger_enable_cb
         )
         self._digital_power_enable_srv = rospy.Service(
-            "/panther_hardware/digital_power_enable",
-            SetBool,
-            self._digital_power_enable_cb,
+            "/panther_hardware/digital_power_enable", SetBool, self._digital_power_enable_cb,
         )
         self._motors_enable_srv = rospy.Service(
             "/panther_hardware/motors_enable", SetBool, self._motors_enable_cb
@@ -86,45 +85,25 @@ class PantherHardware:
             "/panther_hardware/e_stop_trigger", Trigger, self._e_stop_trigger_cb
         )
 
-        rospy.spin()
+        # -------------------------------
+        #   Timers
+        # -------------------------------
 
-    @staticmethod
-    def _setup_gpio() -> None:
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(VMOT_ON, GPIO.OUT, initial=0)
-        GPIO.setup(CHRG_SENSE, GPIO.IN)
-        GPIO.setup(FAN_SW, GPIO.OUT, initial=0)
-        GPIO.setup(AUX_PW_EN, GPIO.OUT, initial=0)
-        GPIO.setup(CHRG_EN, GPIO.OUT, initial=1)
-        GPIO.setup(VDIG_OFF, GPIO.OUT, initial=0)
-        GPIO.setup(DRIVER_EN, GPIO.OUT, initial=0)
-        GPIO.setup(E_STOP_RESET, GPIO.IN)  # USED AS I/O
-    
+        self._timer_charger = rospy.Timer(
+            rospy.Duration(0.5), self._publish_charger_state
+        )
+
+        self._timer_e_stop = rospy.Timer(
+            rospy.Duration(0.1), self._publish_e_stop_state
+        )
+
+
     def _motor_start_sequence(self) -> None:
-        """
-        First start sequence for motors which is meant to power up modules in correct order
-        """
         self._write_to_pin(VMOT_ON, 1)
         time.sleep(0.5)
-
         self._write_to_pin(DRIVER_EN, 1)
         time.sleep(0.2)
-
         self._write_to_pin(AUX_PW_EN, 1)
-
-
-    @staticmethod
-    def _shutdown_host() -> None:
-        # EXAMPLE: https://www.linode.com/docs/guides/use-paramiko-python-to-ssh-into-a-server/
-
-        pkey = paramiko.RSAKey.from_private_key_file("/root/.ssh/id_rsa")
-        client = paramiko.SSHClient()
-        policy = paramiko.AutoAddPolicy()
-        client.set_missing_host_key_policy(policy)
-        client.connect(IP, username=USERNAME, pkey=pkey)
-        _stdin, _stdout, _stderr = client.exec_command("sudo shutdown now")
-        print(_stdout.read().decode())
-        client.close()
 
     def _soft_shutdown(self):
         button = Button(SHDN_INIT, pull_up=False)
@@ -203,6 +182,30 @@ class PantherHardware:
         return self._read_pin(pin) == value
 
     @staticmethod
+    def _shutdown_host() -> None:
+        # EXAMPLE: https://www.linode.com/docs/guides/use-paramiko-python-to-ssh-into-a-server/
+        pkey = paramiko.RSAKey.from_private_key_file("/root/.ssh/id_rsa")
+        client = paramiko.SSHClient()
+        policy = paramiko.AutoAddPolicy()
+        client.set_missing_host_key_policy(policy)
+        client.connect(IP, username=USERNAME, pkey=pkey)
+        _stdin, _stdout, _stderr = client.exec_command("sudo shutdown now")
+        print(_stdout.read().decode())
+        client.close()
+
+    @staticmethod
+    def _setup_gpio() -> None:
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(VMOT_ON, GPIO.OUT, initial=0)
+        GPIO.setup(CHRG_SENSE, GPIO.IN)
+        GPIO.setup(FAN_SW, GPIO.OUT, initial=0)
+        GPIO.setup(AUX_PW_EN, GPIO.OUT, initial=0)
+        GPIO.setup(CHRG_EN, GPIO.OUT, initial=1)
+        GPIO.setup(VDIG_OFF, GPIO.OUT, initial=0)
+        GPIO.setup(DRIVER_EN, GPIO.OUT, initial=0)
+        GPIO.setup(E_STOP_RESET, GPIO.IN)  # USED AS I/O
+
+    @staticmethod
     def _read_pin(pin: int) -> bool:
         """
         Wrapper for GPIO.input() designed to ensure that reverse logic of some pins is used
@@ -222,8 +225,14 @@ class PantherHardware:
         GPIO.output(pin, value)
 
 
+def main():
+    panther_hardware_node = PantherHardware("panther_hardware")
+    rospy.spin()
+
 if __name__ == "__main__":
     try:
-        PantherHardware()
+        main()
     except rospy.ROSInterruptException:
         pass
+    finally: 
+        GPIO.cleanup()

@@ -9,31 +9,16 @@ from sensor_msgs.msg import BatteryState
 from panther_msgs.msg import BatteryDriver
 
 
-class BatteryNode:
-    def __init__(self, name):
-        rospy.init_node(name)
+class BatteryNode(object):
+    def __init__(self, name) -> None:
+        rospy.init_node(name, anonymous=False)
 
-        self._battery_driv_sub = rospy.Subscriber(
-            'battery_driver', BatteryDriver, self._battery_driv_callback
-        )
+        assert rospy.has_param(
+            "~measurements_file"
+        ), f"[{rospy.get_name()}] measurements_file not defined, can not start collecting ADC measurements"
 
-        self.V_driv_front = NaN
-        self.V_driv_rear = NaN
-        self.I_driv_front = NaN
-        self.I_driv_rear = NaN
-
-        # Battery
-        self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
-        self._battery1_publisher = rospy.Publisher('battery1', BatteryState, queue_size=1)
-        self._battery2_publisher = rospy.Publisher('battery2', BatteryState, queue_size=1)
-
-        if rospy.has_param('~measurements_file'):
-            measurements_file = rospy.get_param('~measurements_file')
-        else:
-            rospy.logerr(
-                f'[{rospy.get_name()}] measurements_file not defined, can not start collecting ADC measurements'
-            )
-            return
+        measurements_file = rospy.get_param('~measurements_file')
+        loop_rate = rospy.get_param('~loop_rate', 20)
 
         with open(measurements_file, 'r') as stream:
             try:
@@ -41,23 +26,32 @@ class BatteryNode:
             except yaml.YAMLError as exc:
                 print(exc)
 
-        loop_rate = rospy.get_param('~loop_rate', 20)
-        rospy.Timer(rospy.Duration(1 / loop_rate), self._battery_callback)
+        self.V_driv_front = NaN
+        self.V_driv_rear = NaN
+        self.I_driv_front = NaN
+        self.I_driv_rear = NaN
 
-    def _battery_driv_callback(self, msg):
+        self._battery_driv_sub = rospy.Subscriber('battery_driver', BatteryDriver, self._battery_driv_callback)
+
+        self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
+        self._battery1_publisher = rospy.Publisher('battery1', BatteryState, queue_size=1)
+        self._battery2_publisher = rospy.Publisher('battery2', BatteryState, queue_size=1)
+
+        rospy.Timer(rospy.Duration(1 / loop_rate), self._battery_timer_callback)
+
+    def _battery_driv_callback(self, msg) -> None:
         self.V_driv_front = msg.V_front
         self.V_driv_rear = msg.V_rear
         self.I_driv_front = msg.I_front
         self.I_driv_rear = msg.I_rear
 
-    def _battery_callback(self, *args):
+    def _battery_timer_callback(self, *args) -> None:
         try:
             rospy.get_master().getPid()
         except:
             rospy.logerr(f'[{rospy.get_name()}] Error getting master')
             exit(1)
 
-        # Get battery Data
         try:
             V_bat1 = self._get_ADC_measurement('BAT1_voltage', self.config_file)
             V_bat2 = self._get_ADC_measurement('BAT2_voltage', self.config_file)
@@ -70,28 +64,19 @@ class BatteryNode:
         except:
             rospy.logerr(f'[{rospy.get_name()}] Battery ADC measurement error excep')
 
-        # Try Calculate and publish BAT data
         try:
             # Check battery num
             if V_temp_bat2 > 3.03:  # ONE Battery
-
                 # Calculate Temp in deg of Celcius
                 temp_bat1 = self._voltage_to_deg(V_temp_bat1)
-
-                # rospy.loginfo(f'[{rospy.get_name()}] BATTERY LOG:' +
-                #     f'I_bat1={I_bat1:.2f}, Idriv1={Idriv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, I_bat1={I_bat1:.2f}, temp_bat1={temp_bat1:.2f}')
 
                 self._publish_battery_msg(self._battery1_publisher, True, V_bat1, temp_bat1, I_bat1)
                 self._publish_battery_msg(self._battery2_publisher, False)
+            
             else:
-
                 # Calculate Temp in deg of Celcius
                 temp_bat1 = self._voltage_to_deg(V_temp_bat1)
                 temp_bat2 = self._voltage_to_deg(V_temp_bat2)
-
-                # rospy.loginfo(f'[{rospy.get_name()}] BATTERY LOG:\n' +
-                #     f'I_bat1={I_bat1:.2f}, V_bat1={V_bat1:.2f}, Idriv1={Idriv1:.2f}, V_driv1={V_driv1:.2f}, I_charge_bat1={I_charge_bat1:.2f}, temp_bat1={temp_bat1:.2f} \n' +
-                #     f'I_bat2={I_bat2:.2f}, V_bat2={V_bat2:.2f}, Idriv2={Idriv2:.2f}, V_driv2={V_driv2:.2f}, I_charge_bat2={I_charge_bat2:.2f}, temp_bat2={temp_bat2:.2f}')
 
                 self._publish_battery_msg(
                     self._battery1_publisher, True, V_bat1, temp_bat1, -I_bat1 + I_charge_bat1
@@ -106,14 +91,10 @@ class BatteryNode:
                 I_charge_bat_average = (I_charge_bat1 + I_charge_bat2) / 2
 
                 self._publish_battery_msg(
-                    self._battery_publisher,
-                    True,
-                    V_bat_avereage,
-                    temp_average,
-                    -I_bat_average + I_charge_bat_average,
+                    self._battery_publisher, True, V_bat_avereage, temp_average, -I_bat_average + I_charge_bat_average
                 )
         except:
-            rospy.logerr(f'[{rospy.get_name()}] Error Calculating and publishing bat data')
+            rospy.logerr(f'[{rospy.get_name()}] Error calculating and publishing bat data')
 
     def _get_ADC_measurement(self, name: str, config_file):
         data = config_file[name]
@@ -126,7 +107,6 @@ class BatteryNode:
     def _read_file(self, path):
         with open(path, 'r') as file:
             data = file.read().rstrip()
-
         file.close()
 
         return int(data)
@@ -140,7 +120,7 @@ class BatteryNode:
         R0 = 10000
 
         if V_temp == 0 or V_temp >= U_supply:
-            print('Temperature measurement error')
+            rospy.logerr(f'[{rospy.get_name()}] Temperature measurement error')
             return NaN
 
         R_therm = (V_temp * R1) / (U_supply - V_temp)
@@ -181,7 +161,7 @@ class BatteryNode:
 
 
 def main():
-    panther_battery = BatteryNode('panther_battery')
+    panther_battery_node = BatteryNode('panther_battery')
     rospy.spin()
 
 

@@ -2,7 +2,8 @@ version: "2.3"
 
 services:
   panther_driver:
-    image: husarion/panther-driver:latest
+    build:
+      context: .
     container_name: panther_driver
     network_mode: host
     ipc: host
@@ -20,6 +21,7 @@ services:
       - PANTHER_IMU_ORIENTATION_P
       - PANTHER_IMU_ORIENTATION_Y
     volumes:
+      - ~/panther_driver_test/panther_driver:/ros_ws/src/panther_driver
       - /dev/gpiomem:/dev/gpiomem
       - /sys:/sys
       - ~/.ssh/id_rsa:/root/.ssh/id_rsa
