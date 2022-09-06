@@ -5,6 +5,8 @@ from abc import abstractmethod
 
 import rospy
 
+from geometry_msgs.msg import Twist
+
 
 class PantherKinematics:
     def __init__(self):
@@ -29,15 +31,8 @@ class PantherKinematics:
         self.scale_factor_th = 0.125
         self.cmd_vel_command_time = rospy.Time.now()
 
-    def cmd_vel_cb(self, data):
-        self.cmd_vel_command_time = rospy.Time.now()
-        self.lin_x = data.linear.x * self.scale_factor_x  # [m/s]
-        self.lin_y = data.linear.y * self.scale_factor_y  # [m/s]
-        self.ang_z = data.angular.z * self.scale_factor_th  # [rad/s]
-        self._forward_kinematics()
-
     @abstractmethod
-    def _forward_kinematics(self, x_data, y_data, th_data) -> None:
+    def forward_kinematics(self, x_data, y_data, th_data) -> None:
         pass
 
     @abstractmethod
@@ -70,7 +65,12 @@ class PantherDifferential(PantherKinematics):
     def __init__(self):
         super().__init__()
 
-    def _forward_kinematics(self):
+    def forward_kinematics(self, data: Twist):
+        self.cmd_vel_command_time = rospy.Time.now()
+        self.lin_x = data.linear.x * self.scale_factor_x  # [m/s]
+        self.lin_y = data.linear.y * self.scale_factor_y  # [m/s]
+        self.ang_z = data.angular.z * self.scale_factor_th  # [rad/s]
+
         wheel_front_right_ang_vel = wheel_rear_right_ang_vel = (
             1 / self.wheel_radius
         ) * (self.lin_x + (self.robot_width + self.robot_length) * self.ang_z)
@@ -120,7 +120,12 @@ class PantherMecanum(PantherKinematics):
     def __init__(self):
         super().__init__()
 
-    def _forward_kinematics(self):
+    def forward_kinematics(self, data: Twist):
+        self.cmd_vel_command_time = rospy.Time.now()
+        self.lin_x = data.linear.x * self.scale_factor_x  # [m/s]
+        self.lin_y = data.linear.y * self.scale_factor_y  # [m/s]
+        self.ang_z = data.angular.z * self.scale_factor_th  # [rad/s]
+        
         wheel_front_right_ang_vel = (1 / self.wheel_radius) * (
             self.lin_x + self.lin_y + (self.robot_width + self.robot_length) * self.ang_z
         )

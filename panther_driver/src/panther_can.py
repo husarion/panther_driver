@@ -42,7 +42,8 @@ class PantherCAN:
         )
 
         self.error_cnt = 0
-        self.error_max_cnt = 20
+        self.error_max_cnt = 25
+        self.lock = False
 
         self.network = canopen.Network()
 
@@ -54,6 +55,9 @@ class PantherCAN:
 
         self.network.connect(channel=can_interface, bustype="socketcan")
         rospy.loginfo(f"[{rospy.get_name()}] Connected to the CAN bus.")
+
+        # !TODO
+        #   po wywołaniu estopu trzeba sprawdzić czy roboteqi są w estopie. Jeżeli nie są to trzeba coś zrobić
 
     def set_wheels_enc_velocity(self, fl_vel, fr_vel, rl_vel, rr_vel):
         try:
@@ -181,7 +185,7 @@ class PantherCAN:
         if self.error_cnt >= self.error_max_cnt:
             # !TODO
             #   triger estop when communication failed
-            rospy.logwerr(f"[{rospy.get_name()}] PantherCAN: huuuuge error...")
+            rospy.logerr(f"[{rospy.get_name()}] PantherCAN: huuuuge error...")
 
     def _turn_on_emergency_stop(self):
         self.front_controller.sdo["Cmd_ESTOP"].raw = 1
