@@ -5,35 +5,6 @@ from time import sleep
 
 import rospy
 
-class CanErrorMsgs:
-    wheels_names = [
-        'front right wheel', 
-        'front left wheel', 
-        'rare right wheel', 
-        'rare left wheel'
-    ]
-
-    fault_flags = [
-        'f1: Overheat',
-        'f2: Overvoltage',
-        'f3: Undervoltage',
-        'f4: Short circuit',
-        'f5: Emergency stop',
-        'f6: Motor/Sensor Setup fault',
-        'f7: MOSFET failure',
-        'f8: Default configuration loaded at startup'
-    ]
-
-    runtime_status_flags = [
-        'rf1: Amps Limit currently active',
-        'rf2: Motor stalled',
-        'rf3: Loop Error detected',
-        'rf4: Safety Stop active',
-        'rf5: Forward Limit triggered',
-        'rf6: Reverse Limit triggered',
-        'rf7: Amps Trigger activated'
-    ]
-
 
 class PantherCAN:
     def __init__(self, eds_file, can_interface):
@@ -44,6 +15,7 @@ class PantherCAN:
         self.error_cnt = 0
         self.error_max_cnt = 25
         self.lock = False
+        self.can_net_err = False
 
         self.network = canopen.Network()
 
@@ -133,7 +105,7 @@ class PantherCAN:
         return wheel_curr
 
     def get_battery_data(self):
-        battery_data = [0, 0, 0, 0, False] # V_front, I_front, V_rear, I_rear, Error
+        battery_data = [999.9, 999.9, 999.9, 999.9] # V_front, I_front, V_rear, I_rear
 
         # division by 10 is needed according to documentation
         try:
@@ -142,7 +114,6 @@ class PantherCAN:
         except canopen.SdoCommunicationError:
             rospy.logwarn(f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading battery data (front controller)")
             self._error_handle()
-            battery_data[4] = True
 
         try:
             battery_data[2] = float(self.rear_controller.sdo['Qry_VOLTS'][2].raw)/10
@@ -150,7 +121,6 @@ class PantherCAN:
         except canopen.SdoCommunicationError:
             rospy.logwarn(f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading battery data (rear controller)")
             self._error_handle()
-            battery_data[4] = True
 
         return battery_data
 

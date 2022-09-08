@@ -21,7 +21,7 @@ services:
       - PANTHER_IMU_ORIENTATION_P
       - PANTHER_IMU_ORIENTATION_Y
     volumes:
-      - ~/panther_driver:/ros_ws/src/panther_driver
+      # - ~/panther_driver/panther_driver:/ros_ws/src/panther_driver
       - /dev/gpiomem:/dev/gpiomem
       - /sys:/sys
       - ~/.ssh/id_rsa:/root/.ssh/id_rsa

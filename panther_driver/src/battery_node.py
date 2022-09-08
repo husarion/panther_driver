@@ -6,7 +6,7 @@ from numpy import NaN
 
 import rospy
 from sensor_msgs.msg import BatteryState
-from panther_msgs.msg import BatteryDriver
+from panther_msgs.msg import DriverStateArr
 
 
 class BatteryNode(object):
@@ -31,7 +31,7 @@ class BatteryNode(object):
         self.I_driv_front = NaN
         self.I_driv_rear = NaN
 
-        self._battery_driv_sub = rospy.Subscriber('battery_driver', BatteryDriver, self._battery_driv_callback)
+        self._battery_driv_sub = rospy.Subscriber('panther_driver/state', DriverStateArr, self._battery_driv_callback)
 
         self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
         self._battery1_publisher = rospy.Publisher('battery1', BatteryState, queue_size=1)
@@ -40,11 +40,11 @@ class BatteryNode(object):
         rospy.Timer(rospy.Duration(1 / loop_rate), self._battery_timer_callback)
 
     def _battery_driv_callback(self, msg) -> None:
-        self.V_driv_front = msg.V_front
-        self.V_driv_rear = msg.V_rear
-        self.I_driv_front = msg.I_front
-        self.I_driv_rear = msg.I_rear
-
+        self.V_driv_front = msg.front.voltage
+        self.V_driv_rear = msg.front.current
+        self.I_driv_front = msg.rear.voltage
+        self.I_driv_rear = msg.rear.current
+        
     def _battery_timer_callback(self, *args) -> None:
         try:
             rospy.get_master().getPid()
@@ -66,7 +66,7 @@ class BatteryNode(object):
 
         try:
             # Check battery num
-            if V_temp_bat2 > 3.03:  # ONE Battery
+            if V_temp_bat2 > 3.03:  # One battery
                 # Calculate Temp in deg of Celcius
                 temp_bat1 = self._voltage_to_deg(V_temp_bat1)
 
@@ -112,7 +112,9 @@ class BatteryNode(object):
         return int(data)
 
     def _voltage_to_deg(self, V_temp):
-        # Source: https://electronics.stackexchange.com/questions/323043/how-to-calculate-temperature-through-ntc-thermistor-without-its-datasheet
+        # Source: 
+        # https://electronics.stackexchange.com/questions/323043/how-to-calculate-temperature-through-ntc-thermistor-without-its-datasheet
+
         A = 298.15
         B = 3950
         U_supply = 3.28
@@ -125,7 +127,6 @@ class BatteryNode(object):
 
         R_therm = (V_temp * R1) / (U_supply - V_temp)
 
-        # rospy.loginfo(f'U_meas={V_temp}, R_therm={R_therm}')
         return (A * B / (A * math.log(R_therm / R0) + B)) - 273.15
 
     def _publish_battery_msg(self, bat_pub, present, V_bat=NaN, temp_bat=NaN, I_bat=NaN):

@@ -29,12 +29,13 @@ RUN pip3 install \
 WORKDIR /ros_ws
 
 COPY ./panther_driver src/panther_driver
-RUN git clone --branch ros1 https://github.com/husarion/panther_msgs.git src/panther_msgs
+
+RUN git clone --branch ros1-driver-status-msg https://github.com/husarion/panther_msgs.git src/panther_msgs
 
 RUN mkdir build \
     && source /opt/ros/$ROS_DISTRO/setup.bash \
-    && rosdep init \
-    && rosdep update \
+    # && rosdep init \
+    # && rosdep update \
     && catkin_make -DCATKIN_ENABLE_TESTING=0 -DCMAKE_BUILD_TYPE=Release
 
 # Clear 
@@ -42,6 +43,9 @@ RUN apt clean \
     && rm -rf /var/lib/apt/lists/* 
 
 COPY ./ros_entrypoint.sh / 
+
 RUN chmod +x /ros_entrypoint.sh
+
 ENTRYPOINT ["/ros_entrypoint.sh"]
+
 CMD ["bash"]
