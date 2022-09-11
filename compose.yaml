@@ -21,7 +21,7 @@ services:
       - PANTHER_IMU_ORIENTATION_P
       - PANTHER_IMU_ORIENTATION_Y
     volumes:
-      # - ~/panther_driver/panther_driver:/ros_ws/src/panther_driver
+      - ~/panther_driver/panther_driver:/ros_ws/src/panther_driver
       - /dev/gpiomem:/dev/gpiomem
       - /sys:/sys
       - ~/.ssh/id_rsa:/root/.ssh/id_rsa
@@ -38,17 +38,17 @@ services:
       - ROS_IP=10.15.20.2
     command: roscore
 
-  # webui-ros-joystick:
-  #   image: husarion/webui-ros-joystick:noetic
-  #   tty: true 
-  #   container_name: webui-ros-joystick
+
+  # webui:
+  #   build:
+  #     context: ./
+  #   container_name: webui-test
   #   network_mode: host
   #   ipc: host
-  #   restart: always
   #   environment:
   #     - ROS_IP=10.15.20.2
   #     - ROS_MASTER_URI=http://10.15.20.2:11311
-  #   command: roslaunch webui-ros-joystick webui.launch linear_scale:=1 angular_scale:=1 --wait
+  #   command: roslaunch webui-ros-joystick panther_webui.launch e_stop:=true
 
   panther_lights:
     image: husarion/panther-lights:latest

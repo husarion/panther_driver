@@ -72,12 +72,12 @@ class PantherDriver(object):
 
         self.cmd_vel_timeout = 0.2
         self.main_timer_freq = 1./15.           # 15 Hz
-        self.driver_state_timer_freq = 1./2.    # 2 Hz
+        self.driver_state_timer_freq = 1./4.    # 4 Hz
         self.last_time = rospy.Time.now()
 
         self.estop_triggered = True
-        self.estop_triggered_last = True
         self.stop_cmd_vel_cb = True
+        self.state_err_no = 0
 
         self.robot_x_pos = 0.0
         self.robot_y_pos = 0.0
@@ -230,6 +230,11 @@ class PantherDriver(object):
         roboteq_runtime_flags = self.panther_can.read_runtime_stat_flag()
         self.panther_can.lock = False
 
+        if not self._roboteq_state_is_correct(roboteq_runtime_flags):
+            self.stop_cmd_vel_cb = True
+        else:
+            self.stop_cmd_vel_cb = False
+
         self.driver_state_msg.front.fault_flag = self._decode_fault_flag(roboteq_fault_flags[0])
         self.driver_state_msg.rear.fault_flag = self._decode_fault_flag(roboteq_fault_flags[1])
 
@@ -244,7 +249,24 @@ class PantherDriver(object):
 
         self.driver_state_publisher.publish(self.driver_state_msg)
     
+    def _estop_cb(self, data) -> None:
+        self.estop_triggered = data.data            
 
+    def _cmd_vel_cb(self, data) -> None:
+        # Block all motors if any Roboteq controller returns a fault flag or runtime error flag
+        if not self.stop_cmd_vel_cb:
+            self.panther_kinematics.forward_kinematics(data)
+        else:
+            self.panther_kinematics.forward_kinematics(Twist())
+
+    def _roboteq_state_is_correct(self, flags: list) -> bool:
+        if flags.count(0.0) == len(flags):
+            self.state_err_no = 0
+        else: 
+            self.state_err_no += 1
+
+        return self.state_err_no <= 1/self.driver_state_timer_freq
+        
     def _decode_fault_flag(self, flag_val: int) -> FaultFlag:
         # For more info see 272-roboteq-controllers-user-manual-v21 p. 246
         #   https://www.roboteq.com/docman-list/motor-controllers-documents-and-files/
@@ -278,24 +300,6 @@ class PantherDriver(object):
         msg.amps_trigger_activated = bool(flag_val & ref_flag_val << 6)
 
         return msg
-
-    def _estop_cb(self, data) -> None:
-        self.estop_triggered_last = self.estop_triggered
-        self.estop_triggered = data.data
-        
-        # If the safety stop is disabled, the driver ignores messages on the cmd_vel topic until there are
-        # only zeros in the Twist message. All this is done so that the robot does not move without 
-        # the knowledge of the user
-        if not self.estop_triggered and (self.estop_triggered_last != self.estop_triggered):
-            self.stop_cmd_vel_cb = True
-
-    def _cmd_vel_cb(self, data) -> None:
-        if not self.stop_cmd_vel_cb:
-            self.panther_kinematics.forward_kinematics(data)
-        elif all(v == 0.0 for v in [data.linear.x, data.linear.y, data.angular.z]):
-            self.stop_cmd_vel_cb = False
-        else:
-            self.panther_kinematics.forward_kinematics(Twist())
 
     def _publish_joint_state(self) -> None:
         self.joint_state_msg.header.stamp = rospy.Time.now()
