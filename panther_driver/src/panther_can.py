@@ -1,187 +1,195 @@
 #!/usr/bin/python3
 
 import canopen
-from time import sleep
+from time import time, sleep
+from threading import Thread
 
 import rospy
 
+from constants import LEFT_WHEEL, RIGHT_WHEEL, VOLT_CHANNEL, AMP_CHANNEL
+
+
+class MotorController:
+    def __init__(self, can_node_id, eds_file) -> None:
+        self.wheel_pos = [0.0, 0.0]
+        self.wheel_vel = [0.0, 0.0]
+        self.wheel_curr = [0.0, 0.0]
+        self.battery_data = [0.0, 0.0] # V, I
+        self.runtime_stat_flag = [0, 0]
+        self.fault_flags = 0
+
+        self.can_node = canopen.RemoteNode(can_node_id, eds_file)
+
 
 class PantherCAN:
-    def __init__(self, eds_file, can_interface):
-        rospy.loginfo(
-            f"[{rospy.get_name()}] Start with creating a network representing one CAN bus."
-        )
-
-        self.error_cnt = 0
-        self.error_max_cnt = 25
+    def __init__(self, eds_file, can_interface) -> None:
         self.lock = False
         self.can_net_err = False
+        self._max_err_per_sec = 2
+        self._err_times = [0] * self._max_err_per_sec
+        
+        self._network = canopen.Network()
 
-        self.network = canopen.Network()
+        self._motor_controllers = [
+            MotorController(1, eds_file),   # front
+            MotorController(2, eds_file)    # rear
+        ]
+        
+        self._network.connect(channel=can_interface, bustype='socketcan')
 
-        self.front_controller = canopen.RemoteNode(1, eds_file)
-        self.rear_controller = canopen.RemoteNode(2, eds_file)
+        self._network.add_node(self._motor_controllers[0].can_node)
+        self._network.add_node(self._motor_controllers[1].can_node)
+        
+        self._connection_check_timer = Thread(target=self._can_net_check)  
+        self._connection_check_timer.start()
 
-        self.network.add_node(self.front_controller)
-        self.network.add_node(self.rear_controller)
-
-        self.network.connect(channel=can_interface, bustype="socketcan")
-        rospy.loginfo(f"[{rospy.get_name()}] Connected to the CAN bus.")
-
-    def set_wheels_enc_velocity(self, fl_vel, fr_vel, rl_vel, rr_vel):
-        try:
-            self.front_controller.sdo["Cmd_CANGO"][2].raw = fl_vel
-            self.front_controller.sdo["Cmd_CANGO"][1].raw = fr_vel
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while writing enc speed (front controller)"
-            )
-            self._error_handle()
-
-        try:
-            self.rear_controller.sdo["Cmd_CANGO"][2].raw = rl_vel
-            self.rear_controller.sdo["Cmd_CANGO"][1].raw = rr_vel
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while writing enc speed (rear controller)"
-            )
-            self._error_handle()
+        rospy.loginfo(f'[{rospy.get_name()}] Connected to the CAN bus.')
+        
+    def set_wheels_enc_velocity(self, vel: list) -> None:
+        while self.lock: 
+            sleep(0.01)
+            
+        self.lock = True
+        for motor_controller, enc_vel in zip(self._motor_controllers, [vel[:2], vel[2:]]):
+            for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                try:
+                    motor_controller.can_node.sdo['Cmd_CANGO'][wheel].raw = enc_vel[i]
+                except:
+                    rospy.logwarn(
+                        f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError '
+                        f'occurred while setting wheels velocity'
+                    )
+                    self._error_handle()
+        self.lock = False
 
     def get_wheels_enc_pose(self):
-        wheel_pos = [0, 0, 0, 0]
-
-        try:
-            wheel_pos[0] = self.front_controller.sdo["Qry_ABCNTR"][2].raw
-            wheel_pos[1] = self.front_controller.sdo["Qry_ABCNTR"][1].raw
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading wheels position (front controller)"
-            )
-            self._error_handle()
-
-        try:
-            wheel_pos[2] = self.rear_controller.sdo["Qry_ABCNTR"][2].raw
-            wheel_pos[3] = self.rear_controller.sdo["Qry_ABCNTR"][1].raw
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading wheels position (rear controller)"
-            )
-            self._error_handle()
-
-        return wheel_pos
+        while self.lock: 
+            sleep(0.01)
+            
+        self.lock = True
+        for motor_controller in self._motor_controllers:
+            for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                try:
+                    motor_controller.wheel_pos[i] = motor_controller.can_node.sdo['Qry_ABCNTR'][wheel].raw
+                except canopen.SdoCommunicationError:
+                    rospy.logwarn(
+                        f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError ' 
+                        'occurred while reading wheels position'
+                    )
+                    self._error_handle()
+                yield motor_controller.wheel_pos[i]
+        self.lock = False
 
     def get_wheels_enc_velocity(self):
-        wheel_vel = [0, 0, 0, 0]
-
-        try:
-            wheel_vel[0] = self.front_controller.sdo["Qry_ABSPEED"][2].raw
-            wheel_vel[1] = self.front_controller.sdo["Qry_ABSPEED"][1].raw
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading wheels velocity (front controller)"
-            )
-            self._error_handle()
-
-        try:
-            wheel_vel[2] = self.rear_controller.sdo["Qry_ABSPEED"][2].raw
-            wheel_vel[3] = self.rear_controller.sdo["Qry_ABSPEED"][1].raw
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading wheels velocity (rear controller)"
-            )
-            self._error_handle()
-
-        return wheel_vel
+        while self.lock: 
+            sleep(0.01)
+            
+        self.lock = True
+        for motor_controller in self._motor_controllers:
+            for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                try:
+                    motor_controller.wheel_vel[i] = motor_controller.can_node.sdo['Qry_ABSPEED'][wheel].raw
+                except canopen.SdoCommunicationError:
+                    rospy.logwarn(
+                        f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError '
+                        'occurred while reading wheels velocity'
+                    )
+                    self._error_handle()
+                yield motor_controller.wheel_vel[i]
+        self.lock = False
 
     def get_motor_enc_current(self):
-        wheel_curr = [0, 0, 0, 0]
+        while self.lock: 
+            sleep(0.01)
+            
+        self.lock = True
+        for motor_controller in self._motor_controllers:
+            for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                try:
+                    # division by 10 is needed according to documentation
+                    motor_controller.wheel_curr[i] = motor_controller.can_node.sdo['Qry_MOTAMPS'][wheel].raw / 10.0
+                except canopen.SdoCommunicationError:
+                    rospy.logwarn(
+                        f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError ' 
+                        'occurred while reading motor current'
+                    )
+                    self._error_handle()
+                yield motor_controller.wheel_curr[i]
+        self.lock = False
 
-        # division by 10 is needed according to documentation
-        try:
-            wheel_curr[0] = self.front_controller.sdo["Qry_MOTAMPS"][2].raw / 10.0
-            wheel_curr[1] = self.front_controller.sdo["Qry_MOTAMPS"][1].raw / 10.0
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading motor current (front controller)"
-            )
-            self._error_handle()
-
-        try:
-            wheel_curr[2] = self.rear_controller.sdo["Qry_MOTAMPS"][2].raw / 10.0
-            wheel_curr[3] = self.rear_controller.sdo["Qry_MOTAMPS"][1].raw / 10.0
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading motor current (rear controller)"
-            )
-            self._error_handle()
-
-        return wheel_curr
-
-    def get_battery_data(self):
-        battery_data = [999.9, 999.9, 999.9, 999.9] # V_front, I_front, V_rear, I_rear
-
-        # division by 10 is needed according to documentation
-        try:
-            battery_data[0] = float(self.front_controller.sdo['Qry_VOLTS'][2].raw)/10
-            battery_data[1] = float(self.front_controller.sdo['Qry_BATAMPS'][1].raw)/10
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading battery data (front controller)"
-            )
-            self._error_handle()
-
-        try:
-            battery_data[2] = float(self.rear_controller.sdo['Qry_VOLTS'][2].raw)/10
-            battery_data[3] = float(self.rear_controller.sdo['Qry_BATAMPS'][1].raw)/10
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading battery data (rear controller)"
-            )
-            self._error_handle()
-
-        return battery_data
+    def get_battery_data(self): 
+        while self.lock: 
+            sleep(0.01)
+            
+        self.lock = True
+        for motor_controller in self._motor_controllers:
+            try:
+                # division by 10 is needed according to documentation
+                motor_controller.battery_data[0] = float(motor_controller.can_node.sdo['Qry_VOLTS'][VOLT_CHANNEL].raw) / 10.0
+                motor_controller.battery_data[1] = float(motor_controller.can_node.sdo['Qry_BATAMPS'][AMP_CHANNEL].raw) / 10.0
+            except canopen.SdoCommunicationError:
+                rospy.logwarn(
+                    f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError ' 
+                    'occurred while reading battery data'
+                )       
+                self._error_handle()
+            
+            for i in range(2):
+                yield motor_controller.battery_data[i]
+        self.lock = False
 
     def read_fault_flags(self):
-
-        fault_flags = [None, None]
-        try:
-            fault_flags[0] = self.front_controller.sdo["Qry_FLTFLAG"].raw
-            fault_flags[1] = self.rear_controller.sdo["Qry_FLTFLAG"].raw
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading fault flags"
-            )
-            self._error_handle()
-
-        return fault_flags
+        while self.lock: 
+            sleep(0.01)
+            
+        self.lock = True
+        for motor_controller in self._motor_controllers:
+            try:
+                motor_controller.fault_flags = motor_controller.can_node.sdo['Qry_FLTFLAG'].raw
+            except canopen.SdoCommunicationError:
+                rospy.logwarn(
+                    f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading fault flags'
+                )
+                self._error_handle()
+            yield motor_controller.fault_flags
+        self.lock = False
 
     def read_runtime_stat_flag(self):
-        runtime_stat_flag = [None, None, None, None]
-        try:
-            runtime_stat_flag[0] = int.from_bytes(self.front_controller.sdo["Qry_MOTFLAGS"][1].data, "little") 
-            runtime_stat_flag[1] = int.from_bytes(self.front_controller.sdo["Qry_MOTFLAGS"][2].data, "little")
-            runtime_stat_flag[2] = int.from_bytes(self.rear_controller.sdo["Qry_MOTFLAGS"][1].data, "little")
-            runtime_stat_flag[3] = int.from_bytes(self.rear_controller.sdo["Qry_MOTFLAGS"][2].data, "little")
-        except canopen.SdoCommunicationError:
-            rospy.logwarn(
-                f"[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading runtime status flag"
-            )
-            self._error_handle()
+        while self.lock: 
+            sleep(0.01)
+
+        self.lock = True
+        for motor_controller in self._motor_controllers:
+            for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                try:
+                    motor_controller.runtime_stat_flag[i] = int.from_bytes(motor_controller.can_node.sdo['Qry_MOTFLAGS'][wheel].data, 'little') 
+                except canopen.SdoCommunicationError:
+                    rospy.logwarn(
+                        f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading runtime status flag'
+                    )
+                    self._error_handle()
+                yield motor_controller.runtime_stat_flag[i]
+        self.lock = False
+
         
-        return runtime_stat_flag
+    def _error_handle(self) -> None:
+        self._err_times.append(time())
+        self._err_times.pop(0)
+    
+    def _can_net_check(self) -> None:
+        while True:
+            self.can_net_err = True if (
+                self._err_times[-1] - self._err_times[0] <= 1.0 and time() - self._err_times[-1] <= 2.0
+            ) else False
+
+            sleep(1)
+
+    def _turn_on_roboteq_emergency_stop(self) -> None:
+        self._front_controller.sdo['Cmd_ESTOP'].raw = 1
+        self._rear_controller.sdo['Cmd_ESTOP'].raw = 1
+
+    def _turn_off_roboteq_emergency_stop(self) -> None:
+        self._front_controller.sdo['Cmd_MGO'].raw = 1
+        self._rear_controller.sdo['Cmd_MGO'].raw = 1
+
         
-    def _error_handle(self):
-        self.error_cnt += 1
-
-        if self.error_cnt >= self.error_max_cnt:
-            # !TODO
-            #   triger panther hardware estop when communication failed
-            rospy.logerr(f"[{rospy.get_name()}] PantherCAN: huuuuge error...")
-
-    def _turn_on_roboteq_emergency_stop(self):
-        self.front_controller.sdo["Cmd_ESTOP"].raw = 1
-        self.rear_controller.sdo["Cmd_ESTOP"].raw = 1
-
-    def _turn_off_roboteq_emergency_stop(self):
-        self.front_controller.sdo["Cmd_MGO"].raw = 1
-        self.rear_controller.sdo["Cmd_MGO"].raw = 1

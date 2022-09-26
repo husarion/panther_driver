@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
-import paramiko
+from time import sleep
 import threading
-import time
-
+import paramiko
 import RPi.GPIO as GPIO
 from gpiozero import PWMOutputDevice, Button
+
 import rospy
 
 from std_msgs.msg import Bool
@@ -33,7 +33,7 @@ class Watchdog:
             self._watchdog_on = False
 
 
-class PantherHardware(object):
+class PantherHardwareNode:
     def __init__(self, name):
         self._setup_gpio()
         self._motor_start_sequence()
@@ -52,12 +52,8 @@ class PantherHardware(object):
         #   Publishers
         # -------------------------------
 
-        self._e_stop_state_pub = rospy.Publisher(
-            "/panther_hardware/e_stop", Bool, queue_size=1
-        )
-        self._charger_state_pub = rospy.Publisher(
-            "/panther_hardware/charger_connected", Bool, queue_size=1
-        )
+        self._e_stop_state_pub = rospy.Publisher("/panther_hardware/e_stop", Bool, queue_size=1)
+        self._charger_state_pub = rospy.Publisher("/panther_hardware/charger_connected", Bool, queue_size=1)
         
         # -------------------------------
         #   Services
@@ -89,20 +85,17 @@ class PantherHardware(object):
         #   Timers
         # -------------------------------
 
-        self._timer_charger = rospy.Timer(
-            rospy.Duration(0.5), self._publish_charger_state
-        )
+        self._timer_charger = rospy.Timer(rospy.Duration(0.5), self._publish_charger_state)
+        self._timer_e_stop = rospy.Timer(rospy.Duration(0.1), self._publish_e_stop_state)
 
-        self._timer_e_stop = rospy.Timer(
-            rospy.Duration(0.1), self._publish_e_stop_state
-        )
+        rospy.loginfo(f"[{rospy.get_name()}] Node started")
 
 
     def _motor_start_sequence(self) -> None:
         self._write_to_pin(VMOT_ON, 1)
-        time.sleep(0.5)
+        sleep(0.5)
         self._write_to_pin(DRIVER_EN, 1)
-        time.sleep(0.2)
+        sleep(0.2)
         self._write_to_pin(AUX_PW_EN, 1)
 
     def _soft_shutdown(self):
@@ -164,7 +157,7 @@ class PantherHardware(object):
 
         # Sending False because of inverse logic
         self._write_to_pin(E_STOP_RESET, False)
-        time.sleep(0.1)
+        sleep(0.1)
 
         GPIO.setup(E_STOP_RESET, GPIO.IN)
 
@@ -183,14 +176,13 @@ class PantherHardware(object):
 
     @staticmethod
     def _shutdown_host() -> None:
-        # EXAMPLE: https://www.linode.com/docs/guides/use-paramiko-python-to-ssh-into-a-server/
         pkey = paramiko.RSAKey.from_private_key_file("/root/.ssh/id_rsa")
         client = paramiko.SSHClient()
         policy = paramiko.AutoAddPolicy()
         client.set_missing_host_key_policy(policy)
         client.connect(IP, username=USERNAME, pkey=pkey)
-        _stdin, _stdout, _stderr = client.exec_command("sudo shutdown now")
-        print(_stdout.read().decode())
+        _, stdout, _ = client.exec_command("sudo shutdown now")
+        rospy.loginfo(f"[{rospy.get_name()}] stdout: {stdout.read().decode()}")
         client.close()
 
     @staticmethod
@@ -226,7 +218,7 @@ class PantherHardware(object):
 
 
 def main():
-    panther_hardware_node = PantherHardware("panther_hardware")
+    panther_hardware_node = PantherHardwareNode("panther_hardware_node")
     rospy.spin()
 
 if __name__ == "__main__":

@@ -22,3 +22,9 @@ inverse_logic_pins = [VDIG_OFF, E_STOP_RESET, CHRG_SENSE]
 # Hostame and IP
 IP = "127.0.0.1"
 USERNAME = "husarion"
+
+# Roboteq channels no
+LEFT_WHEEL = 2
+RIGHT_WHEEL = 1
+VOLT_CHANNEL = 2
+AMP_CHANNEL = 1
