@@ -90,7 +90,6 @@ class PantherHardwareNode:
 
         rospy.loginfo(f"[{rospy.get_name()}] Node started")
 
-
     def _motor_start_sequence(self) -> None:
         self._write_to_pin(VMOT_ON, 1)
         sleep(0.5)
@@ -199,18 +198,12 @@ class PantherHardwareNode:
 
     @staticmethod
     def _read_pin(pin: int) -> bool:
-        """
-        Wrapper for GPIO.input() designed to ensure that reverse logic of some pins is used
-        """
         if pin in inverse_logic_pins:
             return not GPIO.input(pin)
         return GPIO.input(pin)
 
     @staticmethod
     def _write_to_pin(pin: int, value: bool) -> None:
-        """
-        Wrapper for GPIO.output() designed to ensure that reverse logic of some pins is used
-        """
         if pin in inverse_logic_pins:
             GPIO.output(pin, not value)
             return

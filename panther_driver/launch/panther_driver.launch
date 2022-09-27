@@ -9,7 +9,7 @@
     <group if="$(arg kalman_params)">
         <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
             <param name="can_interface" type="string" value="panther_can"/>
-            <param name="wheel_type" type="string" value="$(arg kinematics_type)"/>
+            <param name="kinematics_type" type="string" value="$(arg kinematics_type)"/>
             
             <param name="publish_tf" type="bool" value="false"/>
             <param name="publish_pose" type="bool" value="false"/>
@@ -30,7 +30,7 @@
     <group unless="$(arg kalman_params)">
         <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
             <param name="can_interface" type="string" value="panther_can"/>
-            <param name="wheel_type" type="string" value="$(arg kinematics_type)"/>
+            <param name="kinematics_type" type="string" value="$(arg kinematics_type)"/>
             
             <param name="publish_tf" type="bool" value="true"/>
             <param name="publish_pose" type="bool" value="true"/>

@@ -101,9 +101,6 @@ class PantherBatteryNode:
             )
 
     def _voltage_to_deg(self, V_temp) -> float:
-        # Source: 
-        # https://electronics.stackexchange.com/questions/323043/how-to-calculate-temperature-through-ntc-thermistor-without-its-datasheet
-
         if V_temp == 0 or V_temp >= self._U_supply:
             rospy.logerr(f'[{rospy.get_name()}] Temperature measurement error')
             return float('nan')
