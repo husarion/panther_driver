@@ -12,7 +12,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
 
-from panther_msgs.msg import DriverStateArr, FaultFlag, RuntimeError
+from panther_msgs.msg import DriverState, FaultFlag, RuntimeError
 
 from panther_can import PantherCAN
 from panther_kinematics import PantherDifferential, PantherMecanum
@@ -42,17 +42,19 @@ class PantherDriver:
         power_factor = rospy.get_param('~power_factor', 0.04166667)
 
         self._wheels_joints_names = [
-            'front_left_wheel_joint',
-            'front_right_wheel_joint',
-            'rear_left_wheel_joint',
-            'rear_right_wheel_joint',
+            'fl_joint',
+            'fr_joint',
+            'rl_joint',
+            'rr_joint',
         ]
 
         self._main_timer_period = 1.0 / 15.0           # freq. 15 Hz
         self._driver_state_timer_period = 1.0 / 4.0    # freq.  4 Hz
         self._safety_timer_period = 1.0 / 4.0          # freq.  4 Hz
+        self._time_last = rospy.Time.now()
+        self._cmd_vel_command_last_time = rospy.Time.now()
         self._cmd_vel_timeout = 0.2
-        self._last_time = rospy.Time.now()
+        
 
         self._robot_x_pos = 0.0
         self._robot_y_pos = 0.0
@@ -127,8 +129,12 @@ class PantherDriver:
             self._tf_stamped.child_frame_id = self._base_link_frame
             self._tf_broadcaster = tf2_ros.TransformBroadcaster()
 
-        self._driver_state_msg = DriverStateArr()
-        self._driver_state_publisher = rospy.Publisher('panther_driver/state', DriverStateArr, queue_size=1)
+        self._driver_state_msg = DriverState()
+        self._driver_state_msg.front.left_motor.motor_joint_name = self._wheels_joints_names[0]
+        self._driver_state_msg.front.right_motor.motor_joint_name = self._wheels_joints_names[1]
+        self._driver_state_msg.rear.left_motor.motor_joint_name = self._wheels_joints_names[2]
+        self._driver_state_msg.rear.right_motor.motor_joint_name = self._wheels_joints_names[3]
+        self._driver_state_publisher = rospy.Publisher('panther_driver/state', DriverState, queue_size=1)
 
         rospy.Subscriber('/cmd_vel', Twist, self._cmd_vel_cb, queue_size=1)
         rospy.Subscriber('/panther_hardware/e_stop', Bool, self._estop_cb, queue_size=1)
@@ -157,14 +163,14 @@ class PantherDriver:
 
 
     def _main_timer_cb(self, *args) -> None:
-        now = rospy.Time.now()
-        dt = (now - self._last_time).to_sec()
-        self._last_time = now
+        time_now = rospy.Time.now()
+        dt = (time_now - self._time_last).to_sec()
+        self._time_last = time_now
 
-        if (now - self._panther_kinematics.cmd_vel_command_time) > rospy.Duration(secs=self._cmd_vel_timeout):
-            self._panther_kinematics.wheels_enc_speed = [0.0, 0.0, 0.0, 0.0]
-
-        self._panther_can.set_wheels_enc_velocity(self._panther_kinematics.wheels_enc_speed)
+        if (time_now - self._cmd_vel_command_last_time) < rospy.Duration(secs=self._cmd_vel_timeout):
+            self._panther_can.set_wheels_enc_velocity(self._panther_kinematics.wheels_enc_speed)
+        else:
+            self._panther_can.set_wheels_enc_velocity([0.0, 0.0, 0.0, 0.0])
 
         wheel_enc_pos = self._panther_can.get_wheels_enc_pose()
         wheel_enc_vel = self._panther_can.get_wheels_enc_velocity()
@@ -218,19 +224,19 @@ class PantherDriver:
         self._driver_state_msg.front.fault_flag = self._decode_fault_flag(self._roboteq_fault_flags[0])
         self._driver_state_msg.rear.fault_flag = self._decode_fault_flag(self._roboteq_fault_flags[1])
 
-        self._driver_state_msg.front.right_mot_run_err = \
+        self._driver_state_msg.front.right_motor.runtime_error = \
             self._decode_runtime_flag(self._roboteq_runtime_flags[0]) 
-        self._driver_state_msg.front.left_mot_run_err = \
+        self._driver_state_msg.front.left_motor.runtime_error = \
             self._decode_runtime_flag(self._roboteq_runtime_flags[1]) 
-        self._driver_state_msg.rear.right_mot_run_err = \
+        self._driver_state_msg.rear.right_motor.runtime_error = \
             self._decode_runtime_flag(self._roboteq_runtime_flags[2]) 
-        self._driver_state_msg.rear.left_mot_run_err = \
+        self._driver_state_msg.rear.left_motor.runtime_error = \
             self._decode_runtime_flag(self._roboteq_runtime_flags[3])         
 
         self._driver_state_publisher.publish(self._driver_state_msg)
 
     def _safety_timer_cb(self, *args) -> None:
-        if self._panther_can.can_net_err and not self._estop_triggered:
+        if self._panther_can.is_can_connection_correct() and not self._estop_triggered:
             self._trigger_panther_estop()
 
         if (not self._roboteq_state_is_correct([self._roboteq_fault_flags, self._roboteq_runtime_flags])):
@@ -247,6 +253,8 @@ class PantherDriver:
             self._panther_kinematics.inverse_kinematics(data)
         else:
             self._panther_kinematics.inverse_kinematics(Twist())
+
+        self._cmd_vel_command_last_time = rospy.Time.now()
 
     def _roboteq_state_is_correct(self, flags: list) -> bool:
         error_detected = False
@@ -268,7 +276,7 @@ class PantherDriver:
         ref_flag_val = 0b00000001
 
         msg = FaultFlag()
-        msg.can_net_err = self._panther_can.can_net_err
+        msg.can_net_err = self._panther_can.is_can_connection_correct()
         msg.overheat = bool(flag_val & ref_flag_val << 0)
         msg.overvoltage = bool(flag_val & ref_flag_val << 1)
         msg.undervoltage = bool(flag_val & ref_flag_val << 2)

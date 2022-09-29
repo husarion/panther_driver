@@ -9,22 +9,23 @@ import rospy
 
 from constants import LEFT_WHEEL, RIGHT_WHEEL, VOLT_CHANNEL, AMP_CHANNEL
 
+
 @dataclass
 class MotorController:
-    def __init__(self, can_node_id, eds_file) -> None:
-        self.wheel_pos = [0.0, 0.0]
-        self.wheel_vel = [0.0, 0.0]
-        self.wheel_curr = [0.0, 0.0]
-        self.battery_data = [0.0, 0.0] # V, I
-        self.runtime_stat_flag = [0, 0]
-        self.fault_flags = 0
+    wheel_pos = [0.0, 0.0]
+    wheel_vel = [0.0, 0.0]
+    wheel_curr = [0.0, 0.0]
+    battery_data = [0.0, 0.0] # V, I
+    runtime_stat_flag = [0, 0]
+    fault_flags = 0
 
+    def __init__(self, can_node_id, eds_file) -> None:
         self.can_node = canopen.RemoteNode(can_node_id, eds_file)
 
 
 class PantherCAN:
     def __init__(self, eds_file, can_interface) -> None:
-        self.can_net_err = False
+        self._can_net_err = False
         self._max_err_per_sec = 2
         self._err_times = [0] * self._max_err_per_sec
         
@@ -45,7 +46,10 @@ class PantherCAN:
         self._connection_check_timer.start()
 
         rospy.loginfo(f'[{rospy.get_name()}] Connected to the CAN bus.')
-        
+    
+    def is_can_connection_correct(self):
+        return self._can_net_err
+
     def set_wheels_enc_velocity(self, vel: list) -> None:
         with self._lock:
             for motor_controller, enc_vel in zip(self._motor_controllers, [vel[:2], vel[2:]]):
@@ -150,7 +154,7 @@ class PantherCAN:
     
     def _can_net_check(self) -> None:
         while True:
-            self.can_net_err = True if (
+            self._can_net_err = True if (
                 self._err_times[-1] - self._err_times[0] <= 1.0 and time() - self._err_times[-1] <= 2.0
             ) else False
 

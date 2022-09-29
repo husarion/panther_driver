@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-from time import sleep
-import threading
+from gpiozero import PWMOutputDevice, Button
 import paramiko
 import RPi.GPIO as GPIO
-from gpiozero import PWMOutputDevice, Button
+from time import sleep
+import threading
 
 import rospy
 
@@ -85,8 +85,8 @@ class PantherHardwareNode:
         #   Timers
         # -------------------------------
 
-        self._timer_charger = rospy.Timer(rospy.Duration(0.5), self._publish_charger_state)
-        self._timer_e_stop = rospy.Timer(rospy.Duration(0.1), self._publish_e_stop_state)
+        self._timer_charger = rospy.Timer(rospy.Duration(0.5), self._publish_charger_state_cb)
+        self._timer_e_stop = rospy.Timer(rospy.Duration(0.1), self._publish_e_stop_state_cb)
 
         rospy.loginfo(f"[{rospy.get_name()}] Node started")
 
@@ -102,12 +102,12 @@ class PantherHardwareNode:
         button.wait_for_press()
         self._shutdown_host()
 
-    def _publish_e_stop_state(self, event=None) -> None:
+    def _publish_e_stop_state_cb(self, event=None) -> None:
         msg = Bool()
         msg.data = self._read_pin(E_STOP_RESET)
         self._e_stop_state_pub.publish(msg)
 
-    def _publish_charger_state(self, event=None) -> None:
+    def _publish_charger_state_cb(self, event=None) -> None:
         msg = Bool()
         msg.data = self._read_pin(CHRG_SENSE)
         self._charger_state_pub.publish(msg)

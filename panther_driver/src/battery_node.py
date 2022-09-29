@@ -6,7 +6,9 @@ import yaml
 import rospy
 
 from sensor_msgs.msg import BatteryState
-from panther_msgs.msg import DriverStateArr
+from panther_msgs.msg import DriverState
+
+from constants import A, B, R0, R1, U_SUPPLY
 
 
 class PantherBatteryNode:
@@ -21,12 +23,6 @@ class PantherBatteryNode:
                 self._config_file = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
                 print(exc)
-        
-        self._A = 298.15
-        self._B = 3950.0
-        self._U_supply = 3.28
-        self._R1 = 10000.0
-        self._R0 = 10000.0
 
         self._V_driv_front = float('nan')
         self._V_driv_rear = float('nan')
@@ -37,7 +33,7 @@ class PantherBatteryNode:
         #   Publishers & Subscribers
         # -------------------------------
 
-        self._battery_driv_sub = rospy.Subscriber('panther_driver/state', DriverStateArr, self._battery_driv_callback)
+        self._battery_driv_sub = rospy.Subscriber('panther_driver/state', DriverState, self._battery_driv_cb)
 
         self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
         self._battery1_publisher = rospy.Publisher('battery1', BatteryState, queue_size=1)
@@ -47,17 +43,17 @@ class PantherBatteryNode:
         #   Timers
         # -------------------------------
 
-        rospy.Timer(rospy.Duration(1.0 / loop_rate), self._battery_timer_callback)
+        rospy.Timer(rospy.Duration(1.0 / loop_rate), self._battery_timer_cb)
 
         rospy.loginfo(f'[{rospy.get_name()}] Node started')
 
-    def _battery_driv_callback(self, msg) -> None:
+    def _battery_driv_cb(self, msg) -> None:
         self._V_driv_front = msg.front.voltage
         self._V_driv_rear = msg.front.current
         self._I_driv_front = msg.rear.voltage
         self._I_driv_rear = msg.rear.current
         
-    def _battery_timer_callback(self, *args) -> None:
+    def _battery_timer_cb(self, *args) -> None:
         try:
             V_bat1 = self._get_ADC_measurement('BAT1_voltage', self._config_file)
             V_bat2 = self._get_ADC_measurement('BAT2_voltage', self._config_file)
@@ -99,15 +95,6 @@ class PantherBatteryNode:
             self._publish_battery_msg(
                 self._battery_publisher, True, V_bat_avereage, temp_average, -I_bat_average + I_charge_bat_average
             )
-
-    def _voltage_to_deg(self, V_temp) -> float:
-        if V_temp == 0 or V_temp >= self._U_supply:
-            rospy.logerr(f'[{rospy.get_name()}] Temperature measurement error')
-            return float('nan')
-
-        R_therm = (V_temp * self._R1) / (self._U_supply - V_temp)
-
-        return (self._A * self._B / (self._A * math.log(R_therm / self._R0) + self._B)) - 273.15
         
     def _get_ADC_measurement(self, name: str, config_file) -> float:
         data = config_file[name]
@@ -116,6 +103,16 @@ class PantherBatteryNode:
         value = (raw_value - data['offset']) * data['LSB']
 
         return value
+
+    @staticmethod
+    def _voltage_to_deg(V_temp) -> float:
+        if V_temp == 0 or V_temp >= U_SUPPLY:
+            rospy.logerr(f'[{rospy.get_name()}] Temperature measurement error')
+            return float('nan')
+
+        R_therm = (V_temp * R1) / (U_SUPPLY - V_temp)
+
+        return (A * B / (A * math.log(R_therm / R0) + B)) - 273.15
 
     @staticmethod
     def _read_file(path) -> int:
@@ -152,7 +149,7 @@ class PantherBatteryNode:
             battery_msg.charge = float('nan')
             battery_msg.power_supply_status
             battery_msg.power_supply_health
-            battery_msg.power_supply_technology = 3
+            battery_msg.power_supply_technology = BatteryState.POWER_SUPPLY_TECHNOLOGY_LIPO
             battery_msg.present = False
 
         bat_pub.publish(battery_msg)

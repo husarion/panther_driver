@@ -28,3 +28,10 @@ LEFT_WHEEL = 2
 RIGHT_WHEEL = 1
 VOLT_CHANNEL = 2
 AMP_CHANNEL = 1
+
+# Baterry calculation params
+A = 298.15
+B = 3950.0
+R1 = 10000.0
+R0 = 10000.0
+U_SUPPLY = 3.28

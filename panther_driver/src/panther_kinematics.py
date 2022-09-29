@@ -21,14 +21,12 @@ class PantherKinematics:
             power_factor,
         ) -> None:
 
-        self.cmd_vel_command_time = rospy.Time.now()
-        self.wheels_enc_speed = [0.0, 0.0, 0.0, 0.0]
-
         self._robot_width = robot_width
         self._robot_length = robot_length
         self._wheel_radius = wheel_radius  # Distance of the wheel center, to the roller center
         self._const_factor = power_factor * float(encoder_resolution * gear_ratio) / (2.0 * math.pi)
 
+        self._wheels_enc_speed = [0.0, 0.0, 0.0, 0.0]
         self._lin_x = 0.0
         self._lin_y = 0.0
         self._ang_z = 0.0
@@ -39,7 +37,10 @@ class PantherKinematics:
         self._scale_factor_x = 0.25
         self._scale_factor_y = 0.25
         self._scale_factor_th = 0.125
-        
+
+    @property
+    def wheels_enc_speed(self):
+        return self._wheels_enc_speed
 
     @abstractmethod
     def inverse_kinematics(self, data: Twist) -> None:
@@ -61,7 +62,6 @@ class PantherDifferential(PantherKinematics):
         super().__init__(**kwargs)
 
     def inverse_kinematics(self, data: Twist) -> None:
-        self.cmd_vel_command_time = rospy.Time.now()
         self._lin_x = data.linear.x * self._scale_factor_x      # [m/s]
         self._lin_y = data.linear.y * self._scale_factor_y      # [m/s]
         self._ang_z = data.angular.z * self._scale_factor_th    # [rad/s]
@@ -73,7 +73,7 @@ class PantherDifferential(PantherKinematics):
             self._lin_x - (self._robot_width + self._robot_length) * self._ang_z
         )
 
-        self.wheels_enc_speed = self._get_motor_speed([
+        self._wheels_enc_speed = self._get_motor_speed([
             wheel_front_left_ang_vel,
             wheel_front_right_ang_vel,
             wheel_rear_left_ang_vel,
@@ -115,7 +115,6 @@ class PantherMecanum(PantherKinematics):
         super().__init__(**kwargs)
 
     def inverse_kinematics(self, data: Twist) -> None:
-        self.cmd_vel_command_time = rospy.Time.now()
         self._lin_x = data.linear.x * self._scale_factor_x  # [m/s]
         self._lin_y = data.linear.y * self._scale_factor_y  # [m/s]
         self._ang_z = data.angular.z * self._scale_factor_th  # [rad/s]
@@ -133,7 +132,7 @@ class PantherMecanum(PantherKinematics):
             self._lin_x + self._lin_y - (self._robot_width + self._robot_length) * self._ang_z
         )
 
-        self.wheels_enc_speed = self._get_motor_speed([
+        self._wheels_enc_speed = self._get_motor_speed([
             wheel_front_left_ang_vel,
             wheel_front_right_ang_vel,
             wheel_rear_left_ang_vel,
