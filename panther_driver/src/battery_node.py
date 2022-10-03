@@ -6,9 +6,8 @@ import yaml
 import rospy
 
 from sensor_msgs.msg import BatteryState
-from panther_msgs.msg import DriverState
 
-from constants import A, B, R0, R1, U_SUPPLY
+from panther_msgs.msg import DriverState
 
 
 class PantherBatteryNode:
@@ -29,15 +28,21 @@ class PantherBatteryNode:
         self._I_driv_front = float('nan')
         self._I_driv_rear = float('nan')
 
+        self._A = 298.15
+        self._B = 3950.0
+        self._R1 = 10000.0
+        self._R0 = 10000.0
+        self._u_supply = 3.28
+
         # -------------------------------
         #   Publishers & Subscribers
         # -------------------------------
 
-        self._battery_driv_sub = rospy.Subscriber('panther_driver/state', DriverState, self._battery_driv_cb)
+        self._battery_driv_sub = rospy.Subscriber('motor_controllers_state', DriverState, self._battery_driv_cb)
 
         self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
-        self._battery1_publisher = rospy.Publisher('battery1', BatteryState, queue_size=1)
-        self._battery2_publisher = rospy.Publisher('battery2', BatteryState, queue_size=1)
+        self._battery1_publisher = rospy.Publisher('battery_1', BatteryState, queue_size=1)
+        self._battery2_publisher = rospy.Publisher('battery_2', BatteryState, queue_size=1)
 
         # -------------------------------
         #   Timers
@@ -55,14 +60,14 @@ class PantherBatteryNode:
         
     def _battery_timer_cb(self, *args) -> None:
         try:
-            V_bat1 = self._get_ADC_measurement('BAT1_voltage', self._config_file)
-            V_bat2 = self._get_ADC_measurement('BAT2_voltage', self._config_file)
-            V_temp_bat1 = self._get_ADC_measurement('BAT1_temp', self._config_file)
-            V_temp_bat2 = self._get_ADC_measurement('BAT2_temp', self._config_file)
-            I_charge_bat1 = self._get_ADC_measurement('BAT1_charge_current', self._config_file)
-            I_charge_bat2 = self._get_ADC_measurement('BAT2_charge_current', self._config_file)
-            I_bat1 = self._get_ADC_measurement('BAT1_current', self._config_file)
-            I_bat2 = self._get_ADC_measurement('BAT2_current', self._config_file)
+            V_bat1 = self._get_adc_measurement('BAT1_voltage', self._config_file)
+            V_bat2 = self._get_adc_measurement('BAT2_voltage', self._config_file)
+            V_temp_bat1 = self._get_adc_measurement('BAT1_temp', self._config_file)
+            V_temp_bat2 = self._get_adc_measurement('BAT2_temp', self._config_file)
+            I_charge_bat1 = self._get_adc_measurement('BAT1_charge_current', self._config_file)
+            I_charge_bat2 = self._get_adc_measurement('BAT2_charge_current', self._config_file)
+            I_bat1 = self._get_adc_measurement('BAT1_current', self._config_file)
+            I_bat2 = self._get_adc_measurement('BAT2_current', self._config_file)
         except:
             rospy.logerr(f'[{rospy.get_name()}] Battery ADC measurement error excep')
             return
@@ -96,7 +101,7 @@ class PantherBatteryNode:
                 self._battery_publisher, True, V_bat_avereage, temp_average, -I_bat_average + I_charge_bat_average
             )
         
-    def _get_ADC_measurement(self, name: str, config_file) -> float:
+    def _get_adc_measurement(self, name: str, config_file) -> float:
         data = config_file[name]
         path = data['path']
         raw_value = self._read_file(path)
@@ -104,15 +109,14 @@ class PantherBatteryNode:
 
         return value
 
-    @staticmethod
-    def _voltage_to_deg(V_temp) -> float:
-        if V_temp == 0 or V_temp >= U_SUPPLY:
+    def _voltage_to_deg(self, V_temp) -> float:
+        if V_temp == 0 or V_temp >= self._u_supply:
             rospy.logerr(f'[{rospy.get_name()}] Temperature measurement error')
             return float('nan')
 
-        R_therm = (V_temp * R1) / (U_SUPPLY - V_temp)
+        R_therm = (V_temp * self._R1) / (self._u_supply - V_temp)
 
-        return (A * B / (A * math.log(R_therm / R0) + B)) - 273.15
+        return (self._A * self._B / (self._A * math.log(R_therm / self._R0) + self._B)) - 273.15
 
     @staticmethod
     def _read_file(path) -> int:
@@ -130,13 +134,11 @@ class PantherBatteryNode:
             battery_msg.voltage = V_bat
             battery_msg.temperature = temp_bat
             battery_msg.current = I_bat
-            battery_msg.percentage = (battery_msg.voltage - 32) / 10
-            battery_msg.capacity = 20
-            battery_msg.design_capacity = 20
+            battery_msg.percentage = (battery_msg.voltage - 32.0) / 10.0
+            battery_msg.capacity = 20.0
+            battery_msg.design_capacity = 20.0
             battery_msg.charge = battery_msg.percentage * battery_msg.design_capacity
-            battery_msg.power_supply_status
-            battery_msg.power_supply_health
-            battery_msg.power_supply_technology = 3
+            battery_msg.power_supply_technology = BatteryState.POWER_SUPPLY_TECHNOLOGY_LIPO
             battery_msg.present = True
         else:
             battery_msg.header.stamp = rospy.Time.now()
@@ -147,8 +149,6 @@ class PantherBatteryNode:
             battery_msg.capacity = float('nan')
             battery_msg.design_capacity = float('nan')
             battery_msg.charge = float('nan')
-            battery_msg.power_supply_status
-            battery_msg.power_supply_health
             battery_msg.power_supply_technology = BatteryState.POWER_SUPPLY_TECHNOLOGY_LIPO
             battery_msg.present = False
 

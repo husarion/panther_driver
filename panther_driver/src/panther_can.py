@@ -1,13 +1,23 @@
 #!/usr/bin/python3
 
 import canopen
+from collections.abc import Generator
 from dataclasses import dataclass
 from time import time, sleep
 from threading import Thread, Lock
 
 import rospy
 
-from constants import LEFT_WHEEL, RIGHT_WHEEL, VOLT_CHANNEL, AMP_CHANNEL
+
+@dataclass
+class ControllerChannels:
+    LEFT_WHEEL = 2
+    RIGHT_WHEEL = 1
+    VOLT_CHANNEL = 2
+    AMP_CHANNEL = 1 
+
+    def __setattr__(self, name, value):
+        raise AttributeError(f'can\'t reassign constant {name}')
 
 
 @dataclass
@@ -42,18 +52,24 @@ class PantherCAN:
         self._network.add_node(self._motor_controllers[0].can_node)
         self._network.add_node(self._motor_controllers[1].can_node)
         
+        self._channels = ControllerChannels()
+        self._wheels = [
+            self._channels.LEFT_WHEEL,
+            self._channels.RIGHT_WHEEL
+        ]
+
         self._connection_check_timer = Thread(target=self._can_net_check)  
         self._connection_check_timer.start()
 
         rospy.loginfo(f'[{rospy.get_name()}] Connected to the CAN bus.')
     
-    def is_can_connection_correct(self):
+    def can_connection_correct(self) -> bool:
         return self._can_net_err
 
-    def set_wheels_enc_velocity(self, vel: list) -> None:
+    def write_wheels_enc_velocity(self, vel: list) -> None:
         with self._lock:
             for motor_controller, enc_vel in zip(self._motor_controllers, [vel[:2], vel[2:]]):
-                for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                for i, wheel in enumerate(self._wheels):
                     try:
                         motor_controller.can_node.sdo['Cmd_CANGO'][wheel].raw = enc_vel[i]
                     except:
@@ -63,87 +79,97 @@ class PantherCAN:
                         )
                         self._error_handle()
 
-    def get_wheels_enc_pose(self):
+    def query_wheels_enc_pose(self) -> Generator:
         with self._lock:
             for motor_controller in self._motor_controllers:
-                for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                for i, wheel in enumerate(self._wheels):
                     try:
                         motor_controller.wheel_pos[i] = motor_controller.can_node.sdo['Qry_ABCNTR'][wheel].raw
                     except canopen.SdoCommunicationError:
                         rospy.logwarn(
                             f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError ' 
-                            'occurred while reading wheels position'
+                            f'occurred while reading wheels position'
                         )
                         self._error_handle()
                     yield motor_controller.wheel_pos[i]
 
-    def get_wheels_enc_velocity(self):
+    def query_wheels_enc_velocity(self) -> Generator:
         with self._lock:
             for motor_controller in self._motor_controllers:
-                for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                for i, wheel in enumerate(self._wheels):
                     try:
                         motor_controller.wheel_vel[i] = motor_controller.can_node.sdo['Qry_ABSPEED'][wheel].raw
                     except canopen.SdoCommunicationError:
                         rospy.logwarn(
                             f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError '
-                            'occurred while reading wheels velocity'
+                            f'occurred while reading wheels velocity'
                         )
                         self._error_handle()
                     yield motor_controller.wheel_vel[i]
 
-    def get_motor_enc_current(self):
+    def query_motor_enc_current(self) -> Generator:
         with self._lock:
             for motor_controller in self._motor_controllers:
-                for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                for i, wheel in enumerate(self._wheels):
                     try:
                         # division by 10 is needed according to documentation
                         motor_controller.wheel_curr[i] = motor_controller.can_node.sdo['Qry_MOTAMPS'][wheel].raw / 10.0
                     except canopen.SdoCommunicationError:
                         rospy.logwarn(
                             f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError ' 
-                            'occurred while reading motor current'
+                            f'occurred while reading motor current'
                         )
                         self._error_handle()
                     yield motor_controller.wheel_curr[i]
 
-    def get_battery_data(self): 
+    def query_battery_data(self) -> Generator: 
         with self._lock:
             for motor_controller in self._motor_controllers:
                 try:
                     # division by 10 is needed according to documentation
-                    motor_controller.battery_data[0] = float(motor_controller.can_node.sdo['Qry_VOLTS'][VOLT_CHANNEL].raw) / 10.0
-                    motor_controller.battery_data[1] = float(motor_controller.can_node.sdo['Qry_BATAMPS'][AMP_CHANNEL].raw) / 10.0
+                    motor_controller.battery_data[0] = \
+                        float(
+                            motor_controller.can_node.sdo['Qry_VOLTS'][self._channels.VOLT_CHANNEL].raw
+                        ) / 10.0
+                    motor_controller.battery_data[1] = \
+                        float(
+                            motor_controller.can_node.sdo['Qry_BATAMPS'][self._channels.AMP_CHANNEL].raw
+                        ) / 10.0
                 except canopen.SdoCommunicationError:
                     rospy.logwarn(
                         f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError ' 
-                        'occurred while reading battery data'
+                        f'occurred while reading battery data'
                     )       
                     self._error_handle()
                 
-                for i in range(2):
-                    yield motor_controller.battery_data[i]
+                for battery_data in motor_controller.battery_data:
+                    yield battery_data
 
-    def read_fault_flags(self):
+    def query_fault_flags(self) -> Generator:
         with self._lock:
             for motor_controller in self._motor_controllers:
                 try:
                     motor_controller.fault_flags = motor_controller.can_node.sdo['Qry_FLTFLAG'].raw
                 except canopen.SdoCommunicationError:
                     rospy.logwarn(
-                        f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading fault flags'
+                        f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError ' 
+                        f'occurred while reading fault flags'
                     )
                     self._error_handle()
                 yield motor_controller.fault_flags
 
-    def read_runtime_stat_flag(self):
+    def query_runtime_stat_flag(self) -> Generator:
         with self._lock:
             for motor_controller in self._motor_controllers:
-                for i, wheel in enumerate([LEFT_WHEEL, RIGHT_WHEEL]):
+                for i, wheel in enumerate(self._wheels):
                     try:
-                        motor_controller.runtime_stat_flag[i] = int.from_bytes(motor_controller.can_node.sdo['Qry_MOTFLAGS'][wheel].data, 'little') 
+                        motor_controller.runtime_stat_flag[i] = int.from_bytes(
+                            motor_controller.can_node.sdo['Qry_MOTFLAGS'][wheel].data, 'little'
+                        ) 
                     except canopen.SdoCommunicationError:
                         rospy.logwarn(
-                            f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError occurred while reading runtime status flag'
+                            f'[{rospy.get_name()}] PantherCAN: SdoCommunicationError '
+                            f'occurred while reading runtime status flag'
                         )
                         self._error_handle()
                     yield motor_controller.runtime_stat_flag[i]

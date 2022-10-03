@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-
 from abc import abstractmethod
 import math
 from numpy import clip
@@ -47,7 +46,7 @@ class PantherKinematics:
         pass
 
     @abstractmethod
-    def forward_kinematics(self, fl_ang_vel, fr_ang_vel, rl_ang_vel, rr_ang_vel, dt_) -> float:
+    def forward_kinematics(self, fl_ang_vel, fr_ang_vel, rl_ang_vel, rr_ang_vel, dt) -> float:
         pass
 
     def _get_motor_speed(self, wheel_ang_vel: list) -> list:
@@ -80,7 +79,7 @@ class PantherDifferential(PantherKinematics):
             wheel_rear_right_ang_vel
         ])
 
-    def forward_kinematics(self, fl_ang_vel, fr_ang_vel, rl_ang_vel, rr_ang_vel, dt_) -> float:
+    def forward_kinematics(self, fl_ang_vel, fr_ang_vel, rl_ang_vel, rr_ang_vel, dt) -> float:
         linear_velocity_x = (
             fl_ang_vel + fr_ang_vel + rl_ang_vel + rr_ang_vel
         ) * (self._wheel_radius / 4.0)
@@ -91,18 +90,18 @@ class PantherDifferential(PantherKinematics):
 
         angular_velocity_z = (
             -fl_ang_vel + fr_ang_vel - rl_ang_vel + rr_ang_vel
-        ) * (self._wheel_radius / (4.0 * (self._robot_width / 2.0 + self._robot_length / 2)))
+        ) * (self._wheel_radius / (4.0 * (self._robot_width / 2.0 + self._robot_length / 2.0)))
 
-        delta_heading = angular_velocity_z * dt_  # [radians]
+        delta_heading = angular_velocity_z * dt  # [radians]
         self._robot_th_pos = self._robot_th_pos + delta_heading
 
         delta_x = (
             linear_velocity_x * math.cos(self._robot_th_pos) - linear_velocity_y * math.sin(self._robot_th_pos)
-        ) * dt_  # [m]
+        ) * dt  # [m]
 
         delta_y = (
             linear_velocity_x * math.sin(self._robot_th_pos) + linear_velocity_y * math.cos(self._robot_th_pos)
-        ) * dt_  # [m]
+        ) * dt  # [m]
 
         self._robot_x_pos = self._robot_x_pos + delta_x
         self._robot_y_pos = self._robot_y_pos + delta_y
@@ -139,7 +138,7 @@ class PantherMecanum(PantherKinematics):
             wheel_rear_right_ang_vel
         ])
 
-    def forward_kinematics(self, fl_ang_vel, fr_ang_vel, rl_ang_vel, rr_ang_vel, dt_) -> float:
+    def forward_kinematics(self, fl_ang_vel, fr_ang_vel, rl_ang_vel, rr_ang_vel, dt) -> float:
         linear_velocity_x = (
             fl_ang_vel + fr_ang_vel + rl_ang_vel + rr_ang_vel
         ) * (self._wheel_radius / 4.0)
@@ -152,18 +151,18 @@ class PantherMecanum(PantherKinematics):
             -fl_ang_vel + fr_ang_vel - rl_ang_vel + rr_ang_vel
         ) * (self._wheel_radius / (4.0 * (self._robot_width / 2.0 + self._robot_length / 2.0)))
 
-        delta_heading = angular_velocity_z * dt_  # [radians]
+        delta_heading = angular_velocity_z * dt  # [radians]
         self._robot_th_pos = self._robot_th_pos + delta_heading
 
         delta_x = (
             linear_velocity_x * math.cos(self._robot_th_pos)
             - linear_velocity_y * math.sin(self._robot_th_pos)
-        ) * dt_  # [m]
+        ) * dt  # [m]
 
         delta_y = (
             linear_velocity_x * math.sin(self._robot_th_pos)
             + linear_velocity_y * math.cos(self._robot_th_pos)
-        ) * dt_  # [m]
+        ) * dt  # [m]
 
         self._robot_x_pos = self._robot_x_pos + delta_x
         self._robot_y_pos = self._robot_y_pos + delta_y
