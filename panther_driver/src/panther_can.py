@@ -3,8 +3,8 @@
 import canopen
 from collections.abc import Generator
 from dataclasses import dataclass
-from time import time, sleep
-from threading import Thread, Lock
+from time import time
+from threading import Lock
 
 import rospy
 
