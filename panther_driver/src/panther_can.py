@@ -107,7 +107,7 @@ class PantherCAN:
                         self._error_handle()
                     yield motor_controller.wheel_vel[i]
 
-    def query_motor_enc_current(self) -> Generator:
+    def query_motor_current(self) -> Generator:
         with self._lock:
             for motor_controller in self._motor_controllers:
                 for i, wheel in enumerate(self._wheels):

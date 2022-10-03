@@ -174,7 +174,7 @@ class PantherDriverNode:
 
         wheel_enc_pos = self._panther_can.query_wheels_enc_pose()
         wheel_enc_vel = self._panther_can.query_wheels_enc_velocity()
-        wheel_enc_curr = self._panther_can.query_motor_enc_current()
+        wheel_enc_curr = self._panther_can.query_motor_current()
 
         # convert tics to rad
         self._wheels_ang_pos = [
