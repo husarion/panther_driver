@@ -4,8 +4,6 @@ from abc import abstractmethod
 import math
 from numpy import clip
 
-import rospy
-
 from geometry_msgs.msg import Twist
 
 

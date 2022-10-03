@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from gpiozero import PWMOutputDevice, Button
 import paramiko
 import RPi.GPIO as GPIO
-from time import sleep
 import threading
+from time import sleep
 
 import rospy
 

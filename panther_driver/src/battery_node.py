@@ -41,8 +41,8 @@ class PantherBatteryNode:
         self._battery_driv_sub = rospy.Subscriber('motor_controllers_state', DriverState, self._battery_driv_cb)
 
         self._battery_publisher = rospy.Publisher('battery', BatteryState, queue_size=1)
-        self._battery1_publisher = rospy.Publisher('battery_1', BatteryState, queue_size=1)
-        self._battery2_publisher = rospy.Publisher('battery_2', BatteryState, queue_size=1)
+        self._battery_1_publisher = rospy.Publisher('battery_1', BatteryState, queue_size=1)
+        self._battery_2_publisher = rospy.Publisher('battery_2', BatteryState, queue_size=1)
 
         # -------------------------------
         #   Timers
@@ -60,42 +60,42 @@ class PantherBatteryNode:
         
     def _battery_timer_cb(self, *args) -> None:
         try:
-            V_bat1 = self._get_adc_measurement('BAT1_voltage', self._config_file)
-            V_bat2 = self._get_adc_measurement('BAT2_voltage', self._config_file)
-            V_temp_bat1 = self._get_adc_measurement('BAT1_temp', self._config_file)
-            V_temp_bat2 = self._get_adc_measurement('BAT2_temp', self._config_file)
-            I_charge_bat1 = self._get_adc_measurement('BAT1_charge_current', self._config_file)
-            I_charge_bat2 = self._get_adc_measurement('BAT2_charge_current', self._config_file)
-            I_bat1 = self._get_adc_measurement('BAT1_current', self._config_file)
-            I_bat2 = self._get_adc_measurement('BAT2_current', self._config_file)
+            V_bat_1 = self._get_adc_measurement('BAT1_voltage', self._config_file)
+            V_bat_2 = self._get_adc_measurement('BAT2_voltage', self._config_file)
+            V_temp_bat_1 = self._get_adc_measurement('BAT1_temp', self._config_file)
+            V_temp_bat_2 = self._get_adc_measurement('BAT2_temp', self._config_file)
+            I_charge_bat_1 = self._get_adc_measurement('BAT1_charge_current', self._config_file)
+            I_charge_bat_2 = self._get_adc_measurement('BAT2_charge_current', self._config_file)
+            I_bat_1 = self._get_adc_measurement('BAT1_current', self._config_file)
+            I_bat_2 = self._get_adc_measurement('BAT2_current', self._config_file)
         except:
             rospy.logerr(f'[{rospy.get_name()}] Battery ADC measurement error excep')
             return
 
         # Check battery num
-        if V_temp_bat2 > 3.03:  # One battery
+        if V_temp_bat_2 > 3.03:  # One battery
             # Calculate Temp in deg of Celcius
-            temp_bat1 = self._voltage_to_deg(V_temp_bat1)
+            temp_bat_1 = self._voltage_to_deg(V_temp_bat_1)
 
-            self._publish_battery_msg(self._battery1_publisher, True, V_bat1, temp_bat1, I_bat1)
-            self._publish_battery_msg(self._battery2_publisher, False)
+            self._publish_battery_msg(self._battery_1_publisher, True, V_bat_1, temp_bat_1, I_bat_1)
+            self._publish_battery_msg(self._battery_2_publisher, False)
         
         else:
             # Calculate Temp in deg of Celcius
-            temp_bat1 = self._voltage_to_deg(V_temp_bat1)
-            temp_bat2 = self._voltage_to_deg(V_temp_bat2)
+            temp_bat_1 = self._voltage_to_deg(V_temp_bat_1)
+            temp_bat_2 = self._voltage_to_deg(V_temp_bat_2)
 
             self._publish_battery_msg(
-                self._battery1_publisher, True, V_bat1, temp_bat1, -I_bat1 + I_charge_bat1
+                self._battery_1_publisher, True, V_bat_1, temp_bat_1, -I_bat_1 + I_charge_bat_1
             )
             self._publish_battery_msg(
-                self._battery2_publisher, True, V_bat2, temp_bat2, -I_bat2 + I_charge_bat2
+                self._battery_2_publisher, True, V_bat_2, temp_bat_2, -I_bat_2 + I_charge_bat_2
             )
 
-            V_bat_avereage = (V_bat1 + V_bat2) / 2.0
-            temp_average = (temp_bat1 + temp_bat2) / 2.0
-            I_bat_average = (I_bat1 + I_bat2) / 2.0
-            I_charge_bat_average = (I_charge_bat1 + I_charge_bat2) / 2.0
+            V_bat_avereage = (V_bat_1 + V_bat_2) / 2.0
+            temp_average = (temp_bat_1 + temp_bat_2) / 2.0
+            I_bat_average = (I_bat_1 + I_bat_2) / 2.0
+            I_charge_bat_average = (I_charge_bat_1 + I_charge_bat_2) / 2.0
 
             self._publish_battery_msg(
                 self._battery_publisher, True, V_bat_avereage, temp_average, -I_bat_average + I_charge_bat_average
