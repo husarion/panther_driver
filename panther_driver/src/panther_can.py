@@ -35,7 +35,6 @@ class MotorController:
 
 class PantherCAN:
     def __init__(self, eds_file, can_interface) -> None:
-        self._can_net_err = False
         self._max_err_per_sec = 2
         self._err_times = [0] * self._max_err_per_sec
         
@@ -58,13 +57,12 @@ class PantherCAN:
             self._channels.RIGHT_WHEEL
         ]
 
-        self._connection_check_timer = Thread(target=self._can_net_check)  
-        self._connection_check_timer.start()
-
         rospy.loginfo(f'[{rospy.get_name()}] Connected to the CAN bus.')
     
     def can_connection_correct(self) -> bool:
-        return self._can_net_err
+        return True if (
+                self._err_times[-1] - self._err_times[0] <= 1.0 and time() - self._err_times[-1] <= 2.0
+            ) else False
 
     def write_wheels_enc_velocity(self, vel: list) -> None:
         with self._lock:
@@ -177,14 +175,6 @@ class PantherCAN:
     def _error_handle(self) -> None:
         self._err_times.append(time())
         self._err_times.pop(0)
-    
-    def _can_net_check(self) -> None:
-        while True:
-            self._can_net_err = True if (
-                self._err_times[-1] - self._err_times[0] <= 1.0 and time() - self._err_times[-1] <= 2.0
-            ) else False
-
-            sleep(1)
 
     def _turn_on_roboteq_emergency_stop(self) -> None:
         with self._lock:

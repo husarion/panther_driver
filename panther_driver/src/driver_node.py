@@ -238,9 +238,11 @@ class PantherDriverNode:
     def _safety_timer_cb(self, *args) -> None:
         if self._panther_can.can_connection_correct() and not self._estop_triggered:
             self._trigger_panther_estop()
-
-        if (not self._roboteq_state_is_correct([self._roboteq_fault_flags, self._roboteq_runtime_flags])):
             self._stop_cmd_vel_cb = True
+
+        elif (not self._roboteq_state_is_correct([self._roboteq_fault_flags, self._roboteq_runtime_flags])):
+            self._stop_cmd_vel_cb = True
+
         else:
             self._stop_cmd_vel_cb = False
 
@@ -306,13 +308,17 @@ class PantherDriverNode:
         return msg
 
     def _trigger_panther_estop(self) -> bool:
-        response = self._estop_trigger()
-        rospy.logwarn(f'[{rospy.get_name()}] Trying to trigger Panther e-stop... Response: {response.success}')
+        try:
+            response = self._estop_trigger()
+            rospy.logwarn(f'[{rospy.get_name()}] Trying to trigger Panther e-stop... Response: {response.success}')
 
-        if not response.success:
-            return False
+            if not response.success:
+                return True
 
-        return True
+        except rospy.ServiceException as e:
+            rospy.logerr(f'[{rospy.get_name()}] Can\'t trigger Panther e-stop... \n{e}')
+
+        return False
 
     def _publish_joint_state_cb(self) -> None:
         self._joint_state_msg.header.stamp = rospy.Time.now()
