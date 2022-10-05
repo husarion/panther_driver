@@ -60,7 +60,10 @@ class PantherCAN:
         rospy.loginfo(f'[{rospy.get_name()}] Connected to the CAN bus.')
     
     def can_connection_correct(self) -> bool:
-        return (self._err_times[-1] - self._err_times[0] <= 1.0 and time() - self._err_times[-1] <= 2.0)
+        if time() - self._err_times[-1] >= 2.0:
+            return True
+
+        return (self._err_times[-1] - self._err_times[0] >= 1.0)
 
     def write_wheels_enc_velocity(self, vel: list) -> None:
         with self._lock:
