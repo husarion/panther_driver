@@ -65,7 +65,7 @@ class PantherDriverNode:
         self._roboteq_fault_flags = [0, 0]
         self._roboteq_runtime_flags = [0, 0, 0, 0]
 
-        self._estop_triggered = True
+        self._estop_triggered = False
         self._stop_cmd_vel_cb = True
         self._state_err_no = 0
 
@@ -236,7 +236,7 @@ class PantherDriverNode:
         self._driver_state_publisher.publish(self._driver_state_msg)
 
     def _safety_timer_cb(self, *args) -> None:
-        if self._panther_can.can_connection_correct() and not self._estop_triggered:
+        if not self._panther_can.can_connection_correct() and not self._estop_triggered:
             self._trigger_panther_estop()
             self._stop_cmd_vel_cb = True
 
