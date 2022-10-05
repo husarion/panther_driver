@@ -1,37 +1,15 @@
 <launch>
-    <arg name="kalman_params" default="true" doc="Enable/Disable kalman filter"/>
-    <arg name="wheel" default="offroad" doc="Type of wheel. Possible: 'offroad', 'small_pneumatic', 'mecanum'"/>
+  <arg name="wheel_config_file" />
 
-    <!-- wheel definition -->
-    <group if="$(eval wheel == 'offroad')">
-        <include file="$(find panther_driver)/launch/panther_driver.launch">
-            <arg name="robot_width" value="0.697"/>
-            <arg name="wheel_radius" value="0.1825"/>
-            <arg name="kinematics_type" value="differential"/>
-            <arg name="kalman_params" value="$(arg kalman_params)"/>
-        </include>
-    </group>
+  <!-- launch driver node -->
+  <node pkg="panther_driver" name="panther_driver" type="driver_node.py" output="screen" required="true">
+    <rosparam command="load" file="$(find panther_bringup)/config/panther_common.yaml" />
+    <rosparam command="load" file="$(arg wheel_config_file)" />
 
-    <group if="$(eval wheel == 'small_pneumatic')">
-        <include file="$(find panther_driver)/launch/panther_driver.launch">
-            <arg name="robot_width" value="0.616"/>
-            <arg name="wheel_radius" value="0.1015"/>
-            <arg name="kinematics_type" value="differential"/>
-            <arg name="kalman_params" value="$(arg kalman_params)"/>
-        </include>
-    </group>
+    <param name="eds_file" type="string" value="$(find panther_driver)/params/roboteq_motor_controllers_v60.eds" />
+  </node>
 
-    <group if="$(eval wheel == 'mecanum')">
-        <include file="$(find panther_driver)/launch/panther_driver.launch">
-            <arg name="robot_width" value="0.6785"/>
-            <arg name="wheel_radius" value="0.1015"/>
-            <arg name="kinematics_type" value="mecanum"/>
-            <arg name="kalman_params" value="$(arg kalman_params)"/>
-        </include>
-    </group>
-    
-    <include file="$(find panther_driver)/launch/imu.launch"/>
+  <!-- launch IMU node -->
+  <include file="$(find panther_driver)/launch/imu.launch" />
 
-    <!-- TF FOR LIDAR SENSOR -->
-    <node pkg="tf" type="static_transform_publisher" name="laser_link" args="0.39 0.0 0.19 3.14 0.0 0.0 base_link laser 100" />
 </launch>
