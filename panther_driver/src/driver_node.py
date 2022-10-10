@@ -240,7 +240,9 @@ class PantherDriverNode:
             self._trigger_panther_estop()
             self._stop_cmd_vel_cb = True
 
-        elif (not self._roboteq_state_is_correct([self._roboteq_fault_flags, self._roboteq_runtime_flags])):
+        elif (
+            not self._roboteq_state_is_correct([self._roboteq_fault_flags, self._roboteq_runtime_flags]) or
+            self._estop_triggered):
             self._stop_cmd_vel_cb = True
 
         else:
