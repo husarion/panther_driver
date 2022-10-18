@@ -19,6 +19,6 @@ catkin_package(
 )
 
 include_directories(
-  include
+  include config
   ${catkin_INCLUDE_DIRS}
 )
