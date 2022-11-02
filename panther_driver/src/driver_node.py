@@ -24,7 +24,7 @@ class PantherDriverNode:
 
         self._eds_file = rospy.get_param('~eds_file')
         self._can_interface = rospy.get_param('~can_interface', 'panther_can')
-        self._kinematics_type = rospy.get_param('~kinematics_type', 'differential')
+        self._kinematics_type = rospy.get_param('~kinematics', 'differential')
         self._motor_torque_constant = rospy.get_param('~motor_torque_constant', 2.6149)
         self._gear_ratio = rospy.get_param('~gear_ratio', 30.08)
         self._encoder_resolution = rospy.get_param('~encoder_resolution', 400 * 4)
@@ -36,7 +36,7 @@ class PantherDriverNode:
         self._odom_frame = rospy.get_param('~odom_frame', 'odom')
         self._base_link_frame = rospy.get_param('~base_link_frame', 'base_link')
 
-        robot_width = rospy.get_param('~robot_width', 0.682)
+        robot_width = rospy.get_param('~wheel_separation', 0.697)
         robot_length = rospy.get_param('~robot_length', 0.44)
         wheel_radius = rospy.get_param('~wheel_radius', 0.1825)
         power_factor = rospy.get_param('~power_factor', 0.04166667)
